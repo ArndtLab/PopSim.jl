@@ -1,6 +1,9 @@
-using APop
-using Test
+using TestItems
+using TestItemRunner
+@run_package_tests verbose=true
 
-@testset "APop.jl" begin
-    # Write your tests here.
+  
+
+@testitem "Test 1" begin
+    @test 1 == 1
 end
