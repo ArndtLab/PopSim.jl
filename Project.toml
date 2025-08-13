@@ -1,0 +1,7 @@
+name = "APop"
+uuid = "607e1499-206c-4cd0-b740-8138de4d5c8a"
+authors = ["Peter Arndt <arndt@molgen.mpg.de> and contributors"]
+version = "0.1.0"
+
+[compat]
+julia = "1.10"
