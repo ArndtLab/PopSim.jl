@@ -1,5 +1,12 @@
 module APop
 
-# Write your package code here.
+
+include("Genome/genome.jl")
+include("ARGs/segments.jl")
+include("Demographies/Simple.jl")
+
+
+
+
 
 end
