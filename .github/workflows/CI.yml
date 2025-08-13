@@ -24,7 +24,6 @@ jobs:
       matrix:
         version:
           - 'lts'
-          - 'stable'
           - 'pre'
         os:
           - ubuntu-latest
