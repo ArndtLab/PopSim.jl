@@ -1,6 +1,7 @@
 
 export AbstractRateDistribution, UniformRate
 
+using StatsBase, Distributions, Random
 
 abstract type AbstractRateDistribution end
 
@@ -20,4 +21,10 @@ Base.show(io::IO, r::UniformRate) = print(io, "Uniform(rate=$(r.rate))")
 
 
 
+function StatsBase.sample(u::UniformRate, n0::Int, n1::Int)
+    n = n1 - n0 + 1
+    k = rand(Poisson(n * u.rate))
+    sort!(rand(n0:n1, k))
+end
 
+StatsBase.sample(u::UniformRate, n::Int) = sample(u, 1, n)
