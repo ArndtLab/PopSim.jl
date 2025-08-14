@@ -54,3 +54,126 @@ end
     @test length(s) == 1
 
 end
+
+
+
+
+
+@testitem "MemoryCrossoverStore" begin
+   
+    using APop.CrossoverStores
+
+    c = MemoryCrossoverStore(100)
+
+    @test CrossoverStores.nextid(c) == 1
+
+    CrossoverStores.newid!(c, Int64(0), Int64(0), 0.0, Int64[])
+    @test CrossoverStores.nextid(c) > 1
+    @test CrossoverStores.getid1(c, 1) == 0
+    @test CrossoverStores.getid2(c, 1) == 0
+    @test CrossoverStores.gettime(c, 1) == 0.0
+    @test CrossoverStores.getnpos(c, 1) == 0
+    @test CrossoverStores.getvpos(c, 1) == Int64[]
+
+
+    i = CrossoverStores.nextid(c)
+    j = CrossoverStores.newid!(c, Int64(12), Int64(17), 4.5e5, [2,5,6])
+    @test i == j
+
+
+    @test CrossoverStores.getid1(c, i) == 12
+    @test CrossoverStores.getid2(c, i) == 17
+    @test CrossoverStores.gettime(c, i) == 4.5e5
+    @test CrossoverStores.getnpos(c, i) == 3
+    @test CrossoverStores.getvpos(c, i) == [2,5,6]
+
+    @test CrossoverStores.getparentat(c, i, 1) == (12, 2)
+    @test CrossoverStores.getparentat(c, i, 2) == (12, 2)
+    @test CrossoverStores.getparentat(c, i, 3) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 4) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 5) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 6) == (12, 6)
+    @test CrossoverStores.getparentat(c, i, 7) == (17, c.genome_length)
+
+
+    i = CrossoverStores.nextid(c)
+    CrossoverStores.newid!(c, Int64(12), Int64(17), 4.5e5, [2,5,6])
+
+    @test CrossoverStores.getid1(c, i) == 12
+    @test CrossoverStores.getid2(c, i) == 17
+    @test CrossoverStores.gettime(c, i) == 4.5e5
+    @test CrossoverStores.getnpos(c, i) == 3
+    @test CrossoverStores.getvpos(c, i) == [2,5,6]
+
+    @test CrossoverStores.getparentat(c, i, 1) == (12, 2)
+    @test CrossoverStores.getparentat(c, i, 2) == (12, 2)
+    @test CrossoverStores.getparentat(c, i, 3) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 4) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 5) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 6) == (12, 6)
+    @test CrossoverStores.getparentat(c, i, 7) == (17, c.genome_length)
+
+
+end
+
+
+
+@testitem  "VectorCrossoverStore" begin
+
+    using APop.CrossoverStores
+
+    c = VectorCrossoverStore(100)
+
+    @test CrossoverStores.nextid(c) == 1
+
+    CrossoverStores.newid!(c, 0, 0, 0.0, Int64[])
+    @test CrossoverStores.nextid(c) > 1
+    @test CrossoverStores.getid1(c, 1) == 0
+    @test CrossoverStores.getid2(c, 1) == 0
+    @test CrossoverStores.gettime(c, 1) == 0.0
+    @test CrossoverStores.getnpos(c, 1) == 0
+    @test CrossoverStores.getvpos(c, 1) == Int64[]
+
+
+    i = CrossoverStores.nextid(c)
+    j = CrossoverStores.newid!(c, 12, 17, 4.5e5, [2,5,6])
+    @test i == j
+
+
+    @test CrossoverStores.getid1(c, i) == 12
+    @test CrossoverStores.getid2(c, i) == 17
+    @test CrossoverStores.gettime(c, i) == 4.5e5
+    @test CrossoverStores.getnpos(c, i) == 3
+    @test CrossoverStores.getvpos(c, i) == [2,5,6]
+
+    @test CrossoverStores.getparentat(c, i, 1) == (12, 2)
+    @test CrossoverStores.getparentat(c, i, 2) == (12, 2)
+    @test CrossoverStores.getparentat(c, i, 3) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 4) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 5) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 6) == (12, 6)
+    @test CrossoverStores.getparentat(c, i, 7) == (17, c.genome_length)
+
+
+    i = CrossoverStores.nextid(c)
+    CrossoverStores.newid!(c, 12, 17, 4.5e5, [2,5,6])
+
+    @test CrossoverStores.getid1(c, i) == 12
+    @test CrossoverStores.getid2(c, i) == 17
+    @test CrossoverStores.gettime(c, i) == 4.5e5
+    @test CrossoverStores.getnpos(c, i) == 3
+    @test CrossoverStores.getvpos(c, i) == [2,5,6]
+
+    @test CrossoverStores.getparentat(c, i, 1) == (12, 2)
+    @test CrossoverStores.getparentat(c, i, 2) == (12, 2)
+    @test CrossoverStores.getparentat(c, i, 3) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 4) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 5) == (17, 5)
+    @test CrossoverStores.getparentat(c, i, 6) == (12, 6)
+    @test CrossoverStores.getparentat(c, i, 7) == (17, c.genome_length)
+
+
+end
+
+
+
