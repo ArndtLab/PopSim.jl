@@ -94,6 +94,7 @@ mutable struct Demography
     
     start_time::TimeType
     end_time::TimeType
+    ploidy::Int64
     
     population_sizes::Vector{OffsetVector{Int64}}
     migration::Array{Float64, 2}
@@ -101,7 +102,7 @@ end
 
 
 
-Demography() = Demography(Vector{Population}(), Vector{AbstractAncestryEvent}(), 0.0, 0.0, Vector{OffsetVector{Int64}}(), zeros(Float64, 0, 0))
+Demography() = Demography(Vector{Population}(), Vector{AbstractAncestryEvent}(), 0.0, 0.0, 2, Vector{OffsetVector{Int64}}(), zeros(Float64, 0, 0))
 
 
 function add_population!(d::Demography, population::Population)

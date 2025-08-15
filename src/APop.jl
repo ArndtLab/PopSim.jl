@@ -1,18 +1,23 @@
 module APop
 
+using DataStructures
+
 include("Genome/RateDistributions.jl")
 include("Genome/genome.jl")
 
 include("Models/CrossOverStores.jl")
-include("Models/WrightFisherForward.jl")
 
 
 include("ARGs/segments.jl")
+include("ARGs/trees.jl")
+include("ARGs/args.jl")
+
 include("Demographies/Simple.jl")
 include("Demographies/General.jl")
 
 
 
+include("Models/WrightFisherForward.jl")
 
 
 end

@@ -132,6 +132,24 @@ end
 
 
 
+@testitem "ARG" begin
+    tree = CoalescentTreeTwoLineages(1, 100.0)
+    @test tree.root_id == 1
+    @test tree.timespan == 100.0
+
+    # Test ARG
+    segment = Segment(1, 10)
+    arg = ARG(segment, tree)
+    @test arg.segment == segment
+
+    @test first(arg) == 1
+    @test last(arg) == 10
+    @test length(arg) == 10
+    @test timespan(arg) == 100.0
+
+end
+
+
 
 @testitem "MemoryCrossoverStore" begin
    
