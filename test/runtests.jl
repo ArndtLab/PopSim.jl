@@ -22,6 +22,39 @@ using TestItemRunner
 end
 
 
+
+@testitem "Demography" begin
+    d = Demography()
+    @test d.start_time == 0
+    @test d.end_time == 0
+    @test length(d.populations) == 0
+    @test length(d.events) == 0
+
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = 100, growth_rate = 0.0, time0 = 0))
+    set_end_time!(d, 1000)
+    @test length(d.population_sizes) == 1
+    @test d.population_sizes[1][0] == 100
+    @test d.population_sizes[1][1000] == 100
+
+    add_event!(d, ParameterChangeEvent(500, "pop1", :size, 150))
+    @test d.population_sizes[1][500] == 100
+    @test d.population_sizes[1][501] == 150
+    @test d.population_sizes[1][1000] == 150
+
+    add_population!(d, Population(id = "pop2", description = "Population 2", size = 400, growth_rate = 0.0, time0 = 0))
+    set_migration!(d, "pop1", "pop2", 0.1)
+    @test d.migration[2, 1] == 0.1
+    @test d.migration[2, 2] == 0.9
+
+    add_population!(d, Population(id = "pop3", description = "Population 3", size = 400, growth_rate = 0.0, time0 = 0))
+    @test d.migration[2, 1] == 0.1
+    @test d.migration[2, 2] == 0.9
+    @test d.migration[3, 3] == 1.0
+
+end
+
+
+
 @testitem "Genome" begin
     ur = UniformRate(0.1)
     g = Genome(ur, ur, 1000)
@@ -171,9 +204,18 @@ end
     @test CrossoverStores.getparentat(c, i, 5) == (17, 5)
     @test CrossoverStores.getparentat(c, i, 6) == (12, 6)
     @test CrossoverStores.getparentat(c, i, 7) == (17, c.genome_length)
-
-
 end
 
 
+
+@testitem "Individual" begin
+    i = Individual(1, 2)
+    @test i.alleles[1] == 1
+    @test i.alleles[2] == 2 
+    @test ploidy(i) == 2
+    @test i[1] == 1
+    @test i[2] == 2
+    @test length(i) == 2
+    @test randallele(i) in i.alleles
+end
 
