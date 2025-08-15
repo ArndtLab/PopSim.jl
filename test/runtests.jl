@@ -90,6 +90,47 @@ end
 
 
 
+@testitem "Rate Distributions" begin
+    # using StatsBase
+    rate = 0.1
+    u = UniformRate(rate)
+    @test average_rate(u) == rate
+
+    S = 100000
+    for L in [1,10,100,1000], dt in [0.1, 1.0, 10]
+        x = mapreduce(+, 1:S) do i
+            length(APop.sample(u, dt, 1, L))
+        end
+        @test abs(x / (L * S * rate * dt) - 1) < 0.1
+    end
+
+    nu = NonUniformRate([0.1, 0.2, 0.3, 0.4])
+    @test average_rate(nu) == 0.25
+
+    L = 10000
+    rates = [i % 10 == 1 ? 0.1 : 0.01 for i in 1:L]
+    nu = NonUniformRate(rates)
+    @test average_rate(nu) ≈ 0.019
+
+    s = APop.sample(nu, 1.0, 1, L)
+    @test all(x -> x in 1:L, s)
+    ss = map(1:10) do m
+        sum(i -> i % 10 == m % 10, s)
+    end
+    @test ss[1] > 5 * ss[2]
+
+    
+    s = APop.sample(nu, 100000.0, 2, 10)
+    @test all(x -> x in 2:10, s)
+    ss = map(1:10) do m
+        sum(i -> i % 10 == m % 10, s)
+    end
+    @test abs(sum(ss) - 100000.0 * 0.01 * 9) < 0.1 * 100000.0 * 0.01 * 9
+
+
+end
+
+
 
 
 @testitem "MemoryCrossoverStore" begin
