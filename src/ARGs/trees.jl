@@ -10,6 +10,7 @@ abstract type AbstractMutatedCoalescentTree end
 
 
 struct CoalescentTreeTwoLineages <: AbstractCoalescentTree
+    root_id::Int64
     timespan::Float64
 end
 
