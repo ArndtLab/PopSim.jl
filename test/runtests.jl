@@ -346,4 +346,15 @@ end
     @test sum(length, ibs) == L
 
 
+
+    ibs = collect(APop.IBSIteratorNonMutated(ARG, anc.genome.mutation, multiple_hits = :as_one))
+    @test length(ibs) > 0
+    @test all(seg -> length(seg) > 0, ibs)
+    @test sum(length, ibs) == L
+
+
+    ibs = collect(APop.IBSIteratorNonMutated(ARG, anc.genome.mutation, multiple_hits = :JCcorrect))
+    @test length(ibs) > 0
+    @test all(seg -> length(seg) > 0, ibs)
+    @test sum(length, ibs) == L
 end

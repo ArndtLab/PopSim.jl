@@ -7,11 +7,11 @@ mutable struct IBSIteratorNonMutated{T,RD <: AbstractRateDistribution}
     breaks::Vector{Int64}
     lastibxstop::Int64
     mutation::RD
-    sample_kw::NamedTuple
+    kwargs
 end
 
-IBSIteratorNonMutated(ibx, mutation, sample_kw = (; multiple_hits = :ignore)) = 
-    IBSIteratorNonMutated(ibx, Int[], 0, mutation, sample_kw)
+IBSIteratorNonMutated(ibx, mutation; kwargs...) = 
+    IBSIteratorNonMutated(ibx, Int[], 0, mutation, kwargs)
 
 
 Base.IteratorSize(::Type{IBSIteratorNonMutated{T, RD}}) where {T, RD} = Base.SizeUnknown()
@@ -35,7 +35,7 @@ function Base.iterate(si::IBSIteratorNonMutated)
     seg = ibx[1]
 
     dt = timespan(seg)
-    si.breaks = APop.sample(si.mutation, 2 * dt, first(seg), last(seg); si.sample_kw...)
+    si.breaks = APop.sample(si.mutation, 2 * dt, first(seg), last(seg); si.kwargs...)
 
     si.lastibxstop = last(seg)
     state = IBSIteratorNonMutatedState(ibx[2], seg.tree, 0, 1)
@@ -68,7 +68,7 @@ function Base.iterate(si::IBSIteratorNonMutated, state)
             # println("seg: ", seg)
 
             dt = timespan(seg)
-            si.breaks = APop.sample(si.mutation, 2 * dt, first(seg), last(seg); si.sample_kw...)
+            si.breaks = APop.sample(si.mutation, 2 * dt, first(seg), last(seg); si.kwargs...)
 
             si.lastibxstop = last(seg)
 
