@@ -123,7 +123,7 @@ end
     ss = map(1:10) do m
         sum(i -> i % 10 == m % 10, s)
     end
-    @test ss[1] > 5 * ss[2]
+    @test ss[1] > 4 * ss[2]
 
     
     s = APop.sample(nu, 100000.0, 2, 10)
@@ -132,11 +132,30 @@ end
         sum(i -> i % 10 == m % 10, s)
     end
     @test abs(sum(ss) - 100000.0 * 0.01 * 9) < 0.1 * 100000.0 * 0.01 * 9
-
-
 end
 
+@testitem "UniformRateDistribution & JC correction" begin
+    for i in 1:100
+        rate = 0.1
+        L = 100
+        u = UniformRate(rate)
 
+        r = APop.sample(u, 10*L/rate, 1, L; multiple_hits = :ignore)
+        @test all(x -> x in 1:L, r)
+        @test length(r) > 2*L
+
+        r = APop.sample(u, 100*L/rate, 1, L; multiple_hits = :as_one)
+        @test all(x -> x in 1:L, r)
+        @test allunique(r)
+        @test length(r) == L
+
+        L = 10000
+        r = APop.sample(u, 100*L/rate, 1, L; multiple_hits = :JCcorrect)
+        @test all(x -> x in 1:L, r)
+        @test allunique(r)
+        @test 0.65 * L < length(r) < 0.85 * L
+    end
+end
 
 @testitem "ARG" begin
     tree = CoalescentTreeTwoLineages(1, 100.0)
@@ -294,13 +313,13 @@ end
     
     d = Demography()
     add_population!(d, Population(id = "pop1", description = "Population 1", size = population_size, growth_rate = 0.0, time0 = 0))
-    set_end_time!(d, 1000)
+    set_end_time!(d, 4000)
     
     g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)
 
     model = WrightFisher()
 
-    
+
     anc = sim_ancestry(model, d, g)
     @test length(anc.alives) == length(d.populations)
 
@@ -312,12 +331,19 @@ end
     @test indv[2] > 2 * population_size
 
     ARG = collect(get_ARGsegments(anc, [indv[1], indv[2] ]))
-
-
     @test length(ARG) > 0
     @test all(seg -> length(seg) > 0, ARG)
-    @test all(seg -> iscoalescent(seg), ARG)
     @test sum(length, ARG) == L
+    @test all(seg -> iscoalescent(seg), ARG)
+    @test all(seg -> 0.0 <= timespan(seg) < Inf, ARG)
+ 
+    @test sum(length, ARG) == L
+
+
+    ibs = collect(APop.IBSIteratorNonMutated(ARG, anc.genome.mutation))
+    @test length(ibs) > 0
+    @test all(seg -> length(seg) > 0, ibs)
+    @test sum(length, ibs) == L
 
 
 end

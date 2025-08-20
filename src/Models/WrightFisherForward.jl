@@ -159,7 +159,7 @@ IBDIterator(cos::AbstractCrossoverStore, ids::Vector{Int64}, end_time::Float64 =
 
 Base.IteratorSize(::Type{IBDIterator{T}}) where {T} = Base.SizeUnknown()
 Base.IteratorEltype(::Type{IBDIterator{T}}) where {T} = Base.HasEltype()
-Base.eltype(::Type{IBDIterator{T}}) where {T} = ARGsegment{CoalescentTreeTwoLineages}
+Base.eltype(::Type{IBDIterator{T}}) where {T} = ARGsegment{Int64, CoalescentTreeTwoLineages}
 
 
 
