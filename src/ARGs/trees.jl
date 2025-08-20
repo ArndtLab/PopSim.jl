@@ -16,6 +16,6 @@ end
 
 
 timespan(tree::CoalescentTreeTwoLineages) = tree.timespan
-iscoalescent(tree::CoalescentTreeTwoLineages) = tree.timespan > 0.0
+iscoalescent(tree::CoalescentTreeTwoLineages) = tree.timespan >= 0.0
 
 

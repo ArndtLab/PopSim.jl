@@ -74,6 +74,12 @@ end
 end
 
 
+
+
+
+
+
+
 @testitem "Segment" begin
     s = Segment(1, 10)
     @test first(s) == 1
@@ -139,7 +145,7 @@ end
 
     # Test ARG
     segment = Segment(1, 10)
-    arg = ARG(segment, tree)
+    arg = ARGsegment(segment, tree)
     @test arg.segment == segment
 
     @test first(arg) == 1
@@ -278,3 +284,40 @@ end
     @test randallele(i) in i.alleles
 end
 
+@testitem "WrightFisher" begin
+    
+    population_size = 100
+    mutation_rate = 2e-8
+    recombination_rate = 1e-8
+    L = 1_000_000_000
+
+    
+    d = Demography()
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = population_size, growth_rate = 0.0, time0 = 0))
+    set_end_time!(d, 1000)
+    
+    g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)
+
+    model = WrightFisher()
+
+    
+    anc = sim_ancestry(model, d, g)
+    @test length(anc.alives) == length(d.populations)
+
+
+
+
+    indv = anc.alives[1][1]
+    @test indv[1] > 2 * population_size
+    @test indv[2] > 2 * population_size
+
+    ARG = collect(get_ARGsegments(anc, [indv[1], indv[2] ]))
+
+
+    @test length(ARG) > 0
+    @test all(seg -> length(seg) > 0, ARG)
+    @test all(seg -> iscoalescent(seg), ARG)
+    @test sum(length, ARG) == L
+
+
+end
