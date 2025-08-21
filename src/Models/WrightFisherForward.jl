@@ -111,6 +111,7 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
             e = demography.events[nextevent]
             nextevent += 1
             if e isa ParameterChangeEvent
+                w.parameter == :size && continue  # already taken care of in fix_population_sizes!
                 throw(ArgumentError("Not implemented event type: $(typeof(e))"))
             elseif e isa PopulationSplitEvent
                 si = get_population_index_by_id(demography, e.source_population_id)
