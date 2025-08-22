@@ -15,13 +15,12 @@ IBSIteratorNonMutated(ibx, mutation; kwargs...) =
 
 
 Base.IteratorSize(::Type{IBSIteratorNonMutated{T, RD}}) where {T, RD} = Base.SizeUnknown()
-# Base.IteratorEltype(::Type{IBSIteratorNonMutated{T}}) where {T} = Base.HasEltype()
-# Base.eltype(::Type{IBSIteratorNonMutated{T}}) where {T} = Segments.SegItem{Int64, Int64}
+Base.IteratorEltype(::Type{IBSIteratorNonMutated{T}}) where {T} = Base.HasEltype()
+Base.eltype(::Type{IBSIteratorNonMutated{T, RD}}) where {T, RD} = ARGsegment{Int64, Int64}
 
 
-mutable struct IBSIteratorNonMutatedState{T, S}
+mutable struct IBSIteratorNonMutatedState{T}
     ibxstate::Union{Nothing,T}
-    tree::S
     laststop::Int64
     b::Int64
 end
@@ -38,7 +37,7 @@ function Base.iterate(si::IBSIteratorNonMutated)
     si.breaks = APop.sample(si.mutation, 2 * dt, first(seg), last(seg); si.kwargs...)
 
     si.lastibxstop = last(seg)
-    state = IBSIteratorNonMutatedState(ibx[2], data(seg), 0, 1)
+    state = IBSIteratorNonMutatedState(ibx[2], 0, 1)
     iterate(si, state)
 end
 
@@ -53,13 +52,13 @@ function Base.iterate(si::IBSIteratorNonMutated, state)
         mystop = si.breaks[state.b]
         state.b += 1
         state.laststop = mystop
-        return ARGsegment(Segment(mystart, mystop), state.tree), state
+        return ARGsegment(Segment(mystart, mystop), 0), state
     else
         r = 0
         while true
             ibx = iterate(si.ibxs, state.ibxstate)
             if isnothing(ibx) # last ibd reached, emit last interval
-                return ARGsegment(Segment(mystart, si.lastibxstop), state.tree), nothing
+                return ARGsegment(Segment(mystart, si.lastibxstop), r), nothing
             end
 
             state.ibxstate = ibx[2]
@@ -79,10 +78,10 @@ function Base.iterate(si::IBSIteratorNonMutated, state)
             # @show si.breaks
             mystop = si.breaks[1]
             state.b = 2
-            state.tree = data(seg)
+            # state.tree = data(seg)
             state.laststop = mystop
 
-            return ARGsegment(Segment(mystart, mystop), state.tree), state
+            return ARGsegment(Segment(mystart, mystop), r), state
         end
     end
 end

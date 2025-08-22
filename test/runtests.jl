@@ -157,6 +157,10 @@ end
     end
 end
 
+
+
+
+
 @testitem "ARG" begin
     tree = CoalescentTreeTwoLineages(1, 100.0)
     @test tree.root_id == 1
@@ -171,6 +175,26 @@ end
     @test last(arg) == 10
     @test length(arg) == 10
     @test timespan(arg) == 100.0
+
+end
+
+@testitem "IBS kwargs" begin
+    tau = 100.0
+    mut = UniformRate(0.1)
+    tree = CoalescentTreeTwoLineages(1, tau)
+
+    ibds = [ARGsegment(Segment(1, 1000), tree), ARGsegment(Segment(1001, 2000), tree)]
+    ibs = collect(APop.IBSIteratorNonMutated(ibds,mut))
+    @test length(ibs) > 3000
+    @test sum(length, ibs) === 2000
+
+    ibs = collect(APop.IBSIteratorNonMutated(ibds, mut, multiple_hits = :as_one))
+    @test length(ibs) in [1999,2000,2001]
+    @test sum(length, ibs) === 2000
+
+    ibs = collect(APop.IBSIteratorNonMutated(ibds, mut, multiple_hits = :JCcorrect))
+    @test length(ibs) < 1750
+    @test sum(length, ibs) === 2000
 
 end
 
@@ -319,8 +343,6 @@ end
 
     model = WrightFisher()
 
-    # @show mpps = APop.get_migration_parent_pop_sampler(d)
-    # @show mpps[1]()
 
     anc = sim_ancestry(model, d, g)
     @test length(anc.alives) == length(d.populations)
@@ -338,27 +360,31 @@ end
     @test sum(length, ARG) == L
     @test all(seg -> iscoalescent(seg), ARG)
     @test all(seg -> 0.0 <= timespan(seg) < Inf, ARG)
- 
-    @test sum(length, ARG) == L
 
 
     ibs = collect(APop.IBSIteratorNonMutated(ARG, anc.genome.mutation))
     @test length(ibs) > 0
-    @test all(seg -> length(seg) > 0, ibs)
+    @test all(seg -> length(seg) >= 0, ibs)
     @test sum(length, ibs) == L
-
-
 
     ibs = collect(APop.IBSIteratorNonMutated(ARG, anc.genome.mutation, multiple_hits = :as_one))
     @test length(ibs) > 0
     @test all(seg -> length(seg) > 0, ibs)
     @test sum(length, ibs) == L
 
-
     ibs = collect(APop.IBSIteratorNonMutated(ARG, anc.genome.mutation, multiple_hits = :JCcorrect))
     @test length(ibs) > 0
     @test all(seg -> length(seg) > 0, ibs)
     @test sum(length, ibs) == L
+
+    indv2 = anc.alives[1][2]
+    ARGmulti = collect(get_ARGsegments(anc, [indv[1], indv[2], indv2[1]]))
+    @test length(ARGmulti) > 0
+    @test all(seg -> length(seg) > 0, ARGmulti)
+    @test sum(length, ARGmulti) == L
+    @test all(seg -> iscoalescent(seg), ARGmulti)
+    @test all(seg -> 0.0 <= timespan(seg) < Inf, ARGmulti)
+
 end
 
 
