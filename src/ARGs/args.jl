@@ -2,14 +2,17 @@
 
 export ARGsegment
 
-mutable struct ARGsegment{T, Tr}
+mutable struct ARGsegment{T, D}
     segment::Segment{T}
-    tree::Tr
+    data::D
 end
 
-DataStructures.@delegate ARGsegment.segment (Base.first, Base.last, Base.length)
-DataStructures.@delegate ARGsegment.tree (timespan, iscoalescent)
+data(as::ARGsegment) = as.data
 
-# ARGsegment(segment::Segment{T}, tree::Tr) where {T, Tr} = ARGsegment{T, Tr}(segment, tree)
+DataStructures.@delegate ARGsegment.segment (Base.first, Base.last, Base.length)
+
+
+timespan(as::ARGsegment{T,D}) where {T,D <: AbstractCoalescentTree} = timespan(as.data)
+iscoalescent(as::ARGsegment{T,D}) where {T,D <: AbstractCoalescentTree} = iscoalescent(as.data)
 
 

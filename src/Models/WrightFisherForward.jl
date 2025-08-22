@@ -26,6 +26,7 @@ randomswap(a, b) = rand(Bernoulli()) ? (a,b) : (b,a)
 
 using StaticArrays
 using DataStructures
+using Distributions
 
 
 export Individual, randallele, ploidy
@@ -46,6 +47,20 @@ ploidy(::Individual{P}) where P = P
 
 randallele(ind::Individual) = rand(ind.alleles)
 
+function get_migration_parent_pop_sampler(demography::Demography)
+    P = length(demography.populations)
+    migration_parent_pop_sampler = map(1:P) do to_id
+        if demography.migration[to_id, to_id] == 1.0
+            () -> to_id
+        else
+            dist = Categorical([demography.migration[to_id, from_id] for from_id in 1:P])
+            () -> rand(dist)
+        end
+    end
+    return migration_parent_pop_sampler
+end
+
+
 
 using .CrossoverStores
 
@@ -60,16 +75,23 @@ struct SimulatedAncestry{M <: WrightFisher}
 end
 
 
+
+
+
+
 function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genome)
     # prechecks
     @assert demography.ploidy == 2 "Not implemented"
 
-    println(APop.summary(demography))
+    # println(APop.summary(demography))
 
 
     # setup
     fix_population_sizes!(demography)
-    
+    P = length(demography.populations)
+
+    migration_parent_pop_sampler = get_migration_parent_pop_sampler(demography)
+
     cos = CrossoverStores.MemoryCrossoverStore(length(genome))
     t = demography.start_time
     
@@ -88,7 +110,6 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
     # run loop 
     nextevent = 1
     for t in demography.start_time + 1 : demography.end_time
-        @show t map(length, alives)
 
         # handle events
         while nextevent <= length(demography.events) && demography.events[nextevent].time <= t
@@ -103,23 +124,24 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
                 t2i = get_population_index_by_id(demography, e.target_population_id2)
                 alives[t1i] = alives[si]
                 alives[t2i] = copy(alives[si])
+                alives[si] = Vector{Individual}()
             elseif e isa PopulationMergeEvent
                 si1 = get_population_index_by_id(demography, e.source_population_id1)
                 si2 = get_population_index_by_id(demography, e.source_population_id2)
                 ti = get_population_index_by_id(demography, e.target_population_id)
                 alives[ti] = vcat(alives[si1], alives[si2])
+                alives[si1] = Vector{Individual}()
+                alives[si2] = Vector{Individual}()
             else
                 throw(ArgumentError("Unknown event type: $(typeof(e))"))
             end
         end
-        @show map(length, alives)
 
         # reproduction
         nalives = map(enumerate(alives)) do (i, alive)
-            @show targetN = demography.population_sizes[i][t]
-            parentpool = alive
-            @show length(parentpool)
-            alive1 = map(1:targetN) do i
+            targetN = demography.population_sizes[i][t]
+            alive1 = map(1:targetN) do k
+                parentpool = alives[migration_parent_pop_sampler[i]()]
                 a1, a2 = sample(parentpool, 2, replace=model.allow_selfing)
                 
                 a11, a12 = randomswap(a1[1], a1[2])

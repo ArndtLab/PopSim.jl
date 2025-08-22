@@ -38,7 +38,7 @@ function Base.iterate(si::IBSIteratorNonMutated)
     si.breaks = APop.sample(si.mutation, 2 * dt, first(seg), last(seg); si.kwargs...)
 
     si.lastibxstop = last(seg)
-    state = IBSIteratorNonMutatedState(ibx[2], seg.tree, 0, 1)
+    state = IBSIteratorNonMutatedState(ibx[2], data(seg), 0, 1)
     iterate(si, state)
 end
 
@@ -79,7 +79,7 @@ function Base.iterate(si::IBSIteratorNonMutated, state)
             # @show si.breaks
             mystop = si.breaks[1]
             state.b = 2
-            state.tree = seg.tree
+            state.tree = data(seg)
             state.laststop = mystop
 
             return ARGsegment(Segment(mystart, mystop), state.tree), state

@@ -1,6 +1,8 @@
 module APop
 
 using DataStructures
+using Random
+using Distributions
 
 include("Genome/RateDistributions.jl")
 include("Genome/genome.jl")

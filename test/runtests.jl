@@ -319,6 +319,8 @@ end
 
     model = WrightFisher()
 
+    # @show mpps = APop.get_migration_parent_pop_sampler(d)
+    # @show mpps[1]()
 
     anc = sim_ancestry(model, d, g)
     @test length(anc.alives) == length(d.populations)
@@ -397,4 +399,58 @@ end
     @test length(anc.alives) == length(d.populations)
 
 
+end
+
+
+
+@testitem "WrightFisher - Migration Sampler" begin
+    
+    population_size = 100
+    mutation_rate = 2e-8
+    recombination_rate = 1e-8
+    L = 1_000_000_000
+
+    
+    d = Demography()
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = population_size))
+    add_population!(d, Population(id = "pop2a", description = "Population 2A", size = 200))
+    add_population!(d, Population(id = "pop2b", description = "Population 2B", size = population_size))
+    add_population!(d, Population(id = "pop3a", description = "Population 3A", size = population_size))
+    add_population!(d, Population(id = "pop3b", description = "Population 3B", size = population_size))
+
+    set_migration!(d, "pop2a", "pop2b", 0.1)
+    set_migration!(d, "pop3a", "pop3b", 0.5)
+    set_migration!(d, "pop3b", "pop3a", 0.5)
+
+    set_start_time!(d, 0)
+    set_end_time!(d, 12)
+    
+    s = APop.get_migration_parent_pop_sampler(d)
+    @test length(s) == length(d.populations)
+
+    i = 1
+    pp = map(k -> s[i](), 1:10000) 
+    @test all(==(1), pp)
+
+    i = 2
+    pp = map(k -> s[i](), 1:10000) 
+    @test all(==(2), pp)
+
+    i = 3
+    pp = map(k -> s[i](), 1:10000) 
+    @test all(in([2,3]), pp)
+    @test length(pp) * 0.15 > sum(==(2), pp) > 0.05 * length(pp)
+    @test sum(==(3), pp) > 0.8 * length(pp)
+
+    i = 4
+    pp = map(k -> s[i](), 1:10000) 
+    @test all(in([4,5]), pp)
+    @test length(pp) * 0.6 > sum(==(4), pp) > 0.4 * length(pp)
+    @test length(pp) * 0.6 > sum(==(5), pp) > 0.4 * length(pp)
+
+    i = 5
+    pp = map(k -> s[i](), 1:10000) 
+    @test all(in([4,5]), pp)
+    @test length(pp) * 0.6 > sum(==(4), pp) > 0.4 * length(pp)
+    @test length(pp) * 0.6 > sum(==(5), pp) > 0.4 * length(pp)
 end
