@@ -46,6 +46,7 @@ StatsBase.sample(u::UniformRate, dt::Float64, n::Int; kwargs...) = sample(u, dt,
 
 
 
+
 struct NonUniformRate <: AbstractRateDistribution
     cprob::Vector{Float64}
     

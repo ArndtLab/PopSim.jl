@@ -64,6 +64,9 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
     # prechecks
     @assert demography.ploidy == 2 "Not implemented"
 
+    println(APop.summary(demography))
+
+
     # setup
     fix_population_sizes!(demography)
     
@@ -78,18 +81,44 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
                 CrossoverStores.newid!(cos, float(t))
             end    
             Individual(ids...)
-        end    
+        end
         alive
     end    
     
     # run loop 
     nextevent = 1
-    for t in demography.start_time : demography.end_time
+    for t in demography.start_time + 1 : demography.end_time
+        @show t map(length, alives)
+
+        # handle events
+        while nextevent <= length(demography.events) && demography.events[nextevent].time <= t
+            e = demography.events[nextevent]
+            nextevent += 1
+            if e isa PopulationSizeEvent
+                continue  # already taken care of in fix_population_sizes!
+                throw(ArgumentError("Not implemented event type: $(typeof(e))"))
+            elseif e isa PopulationSplitEvent
+                si = get_population_index_by_id(demography, e.source_population_id)
+                t1i = get_population_index_by_id(demography, e.target_population_id1)
+                t2i = get_population_index_by_id(demography, e.target_population_id2)
+                alives[t1i] = alives[si]
+                alives[t2i] = copy(alives[si])
+            elseif e isa PopulationMergeEvent
+                si1 = get_population_index_by_id(demography, e.source_population_id1)
+                si2 = get_population_index_by_id(demography, e.source_population_id2)
+                ti = get_population_index_by_id(demography, e.target_population_id)
+                alives[ti] = vcat(alives[si1], alives[si2])
+            else
+                throw(ArgumentError("Unknown event type: $(typeof(e))"))
+            end
+        end
+        @show map(length, alives)
+
         # reproduction
         nalives = map(enumerate(alives)) do (i, alive)
-            targetN = demography.population_sizes[i][t]
+            @show targetN = demography.population_sizes[i][t]
             parentpool = alive
-            
+            @show length(parentpool)
             alive1 = map(1:targetN) do i
                 a1, a2 = sample(parentpool, 2, replace=model.allow_selfing)
                 
@@ -106,29 +135,6 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
         
         alives .= nalives
 
-        # handle events
-        while nextevent <= length(demography.events) && demography.events[nextevent].time == t
-            e = demography.events[nextevent]
-            nextevent += 1
-            if e isa ParameterChangeEvent
-                e.parameter == :size && continue  # already taken care of in fix_population_sizes!
-                throw(ArgumentError("Not implemented event type: $(typeof(e))"))
-            elseif e isa PopulationSplitEvent
-                si = get_population_index_by_id(demography, e.source_population_id)
-                t1i = get_population_index_by_id(demography, e.target_population_id1)
-                t2i = get_population_index_by_id(demography, e.target_population_id2)
-                throw(ArgumentError("Not implemented event type: $(typeof(e))"))
-
-            elseif e isa PopulationMergeEvent
-                si1 = get_population_index_by_id(demography, e.source_population_id1)
-                si2 = get_population_index_by_id(demography, e.source_population_id2)
-                ti = get_population_index_by_id(demography, e.target_population_id)
-                throw(ArgumentError("Not implemented event type: $(typeof(e))"))
-
-            else
-                throw(ArgumentError("Unknown event type: $(typeof(e))"))
-            end
-        end
     end
 
     return SimulatedAncestry{typeof(model)}(model, demography, genome, cos, alives)

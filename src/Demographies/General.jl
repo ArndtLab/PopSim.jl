@@ -7,12 +7,12 @@ export Population, setparam!
 
 const TimeType = Int64
 
-mutable struct Population
+struct Population
     id::String
     description::String
     size::Int
     growth_rate::Float64
-    time0::TimeType
+    time_offset::TimeType
 end
 
 
@@ -21,23 +21,13 @@ function Population(;id::String = "",
         description::String = "", 
         size::Int = 0, 
         growth_rate::Float64 = 0.0, 
-        time0::TimeType = 0
+        time_offset::TimeType = 0
         )
-    Population(id, description, size, growth_rate, time0)
+    Population(id, description, size, growth_rate, time_offset)
 end
 
 
-function setparam!(p::Population, param::Symbol, value)
-    if param == :size
-        p.size = value
-    elseif param == :growth_rate
-        p.growth_rate = value
-    elseif param == :time0
-        p.time0 = value
-    else
-        throw(ArgumentError("Unknown or immutable parameter $param"))
-    end
-end
+
 
 Base.size(p::Population) = p.size
 
@@ -52,14 +42,13 @@ time0(p::Population) = p.time0
 # Event
 # ============================================================
 
-export AbstractAncestryEvent, ParameterChangeEvent, PopulationSplitEvent, PopulationMergeEvent
+export AbstractAncestryEvent, PopulationSizeEvent, PopulationSplitEvent, PopulationMergeEvent
 
 abstract type AbstractAncestryEvent end
 
-struct ParameterChangeEvent <: AbstractAncestryEvent
+struct PopulationSizeEvent <: AbstractAncestryEvent
     time::TimeType
     population_id::AbstractString
-    parameter::Symbol
     value
 end
 
@@ -68,10 +57,7 @@ struct PopulationSplitEvent <: AbstractAncestryEvent
     source_population_id::AbstractString
 
     target_population_id1::AbstractString
-    target_size1::Int64
-
     target_population_id2::AbstractString
-    target_size2::Int64
 end
 
 struct PopulationMergeEvent <: AbstractAncestryEvent
@@ -79,7 +65,6 @@ struct PopulationMergeEvent <: AbstractAncestryEvent
     source_population_id1::AbstractString
     source_population_id2::AbstractString
     target_population_id::AbstractString
-    target_size::Int64
 end
 
 
@@ -110,23 +95,21 @@ function add_population!(d::Demography, population::Population)
         throw(ArgumentError("Population with id $(population.id) already exists"))
     end
     push!(d.populations, population)
-    if time0(population) < d.start_time
-        d.start_time = time0(population)
-    end
-    m = zeros(Float64, length(d.populations), length(d.populations))
-    for i in 1:length(d.populations)-1, j in 1:length(d.populations)-1
+
+    # Update migration matrix
+    np = length(d.populations)
+    m = zeros(Float64, np, np)
+    for i in 1:np-1, j in 1:np-1
         m[i, j] = d.migration[i, j]  # copy existing migration rates
     end
-    m[length(d.populations), length(d.populations)] = 1.0  # self-migration rate
+    m[np, np] = 1.0  # self-migration rate
     d.migration = m 
+
     fix_population_sizes!(d)
 end
 
 function add_event!(d::Demography, event::AbstractAncestryEvent)
     push!(d.events, event)
-    if event.time < d.start_time
-        d.start_time = event.time
-    end
     fix_population_sizes!(d)
 end
 
@@ -172,33 +155,37 @@ function fix_population_sizes!(d::Demography)
     T = d.end_time - d.start_time + 1
     T <= 0 && return d
 
-    d.population_sizes = map(p -> OffsetVector(zeros(Int64, T), d.start_time:d.end_time), d.populations)
-    for t in d.start_time:d.end_time
-        for (i, p) in enumerate(d.populations)
-            @assert p.growth_rate == 0.0
-            d.population_sizes[i][t] = p.size
+    d.population_sizes = map(p -> OffsetVector(fill(p.size, T), d.start_time : d.end_time), d.populations)
+    @assert all(p -> p.growth_rate == 0.0, d.populations)
+
+    for t in d.start_time+1 : d.end_time
+        for i in 1:length(d.populations)
+            d.population_sizes[i][t] = d.population_sizes[i][t-1]
         end
-        while nextevent <= length(d.events) && d.events[nextevent].time == t
+
+        while nextevent <= length(d.events) && d.events[nextevent].time <= t
             e = d.events[nextevent]
             nextevent += 1
-            if e isa ParameterChangeEvent
+            if e isa PopulationSizeEvent
                 i = get_population_index_by_id(d, e.population_id)
-                setparam!(d.populations[i], e.parameter, e.value)
+                d.population_sizes[i][t] = e.value
             elseif e isa PopulationSplitEvent
                 si = get_population_index_by_id(d, e.source_population_id)
                 t1i = get_population_index_by_id(d, e.target_population_id1)
                 t2i = get_population_index_by_id(d, e.target_population_id2)
-
-                setparam!(d.populations[si], :size, 0)
-                setparam!(d.populations[t1i], :size, e.target_size1)
-                setparam!(d.populations[t2i], :size, e.target_size2)
+                d.population_sizes[si][t : end] .= 0
+                d.population_sizes[t1i][begin : t-1] .= 0
+                d.population_sizes[t2i][begin : t-1] .= 0
+                @assert d.population_sizes[t1i][t] > 0
+                @assert d.population_sizes[t2i][t] > 0
             elseif e isa PopulationMergeEvent
                 si1 = get_population_index_by_id(d, e.source_population_id1)
                 si2 = get_population_index_by_id(d, e.source_population_id2)
                 ti = get_population_index_by_id(d, e.target_population_id)
-                setparam!(d.populations[si1], :size, 0)
-                setparam!(d.populations[si2], :size, 0)
-                setparam!(d.populations[ti], :size, e.target_size)
+                d.population_sizes[ti][begin : t-1] .= 0
+                d.population_sizes[si1][t : end] .= 0
+                d.population_sizes[si2][t : end] .= 0
+                @assert d.population_sizes[ti][t] > 0
             else
                 throw(ArgumentError("Unknown event type: $(typeof(e))"))
             end
@@ -206,6 +193,27 @@ function fix_population_sizes!(d::Demography)
     end
     return d
 end
+
+function summary(d::Demography)
+    io = IOBuffer()
+    write(io, "Demography with $(length(d.populations)) populations, " *
+           "$(length(d.events)) events, start time $(d.start_time), end time $(d.end_time)")
+    
+    ts = map(d.start_time : d.end_time) do t
+        p = map(p -> lpad(string(d.population_sizes[p][t]), 7), 1:length(d.populations))
+        (t, join(p, " "))
+    end
+
+    for (t, s) in ts
+        write(io, "\n", lpad(string(t), 7), ": $s")
+    end
+
+    
+    return String(take!(io))
+end
+
+
+
 
 
 function test_population_sizes(d::Demography)

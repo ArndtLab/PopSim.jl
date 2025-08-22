@@ -30,23 +30,23 @@ end
     @test length(d.populations) == 0
     @test length(d.events) == 0
 
-    add_population!(d, Population(id = "pop1", description = "Population 1", size = 100, growth_rate = 0.0, time0 = 0))
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = 100, growth_rate = 0.0, time_offset = 0))
     set_end_time!(d, 1000)
     @test length(d.population_sizes) == 1
     @test d.population_sizes[1][0] == 100
     @test d.population_sizes[1][1000] == 100
 
-    add_event!(d, ParameterChangeEvent(500, "pop1", :size, 150))
-    @test d.population_sizes[1][500] == 100
-    @test d.population_sizes[1][501] == 150
+    add_event!(d, PopulationSizeEvent(500, "pop1", 150))
+    @test d.population_sizes[1][500-1] == 100
+    @test d.population_sizes[1][500] == 150
     @test d.population_sizes[1][1000] == 150
 
-    add_population!(d, Population(id = "pop2", description = "Population 2", size = 400, growth_rate = 0.0, time0 = 0))
+    add_population!(d, Population(id = "pop2", description = "Population 2", size = 400, growth_rate = 0.0, time_offset = 0))
     set_migration!(d, "pop1", "pop2", 0.1)
     @test d.migration[2, 1] == 0.1
     @test d.migration[2, 2] == 0.9
 
-    add_population!(d, Population(id = "pop3", description = "Population 3", size = 400, growth_rate = 0.0, time0 = 0))
+    add_population!(d, Population(id = "pop3", description = "Population 3", size = 400, growth_rate = 0.0, time_offset = 0))
     @test d.migration[2, 1] == 0.1
     @test d.migration[2, 2] == 0.9
     @test d.migration[3, 3] == 1.0
@@ -303,7 +303,7 @@ end
     @test randallele(i) in i.alleles
 end
 
-@testitem "WrightFisher" begin
+@testitem "WrightFisher - ARG etc" begin
     
     population_size = 100
     mutation_rate = 2e-8
@@ -312,7 +312,7 @@ end
 
     
     d = Demography()
-    add_population!(d, Population(id = "pop1", description = "Population 1", size = population_size, growth_rate = 0.0, time0 = 0))
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = population_size, growth_rate = 0.0, time_offset = 0))
     set_end_time!(d, 4000)
     
     g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)
@@ -357,4 +357,44 @@ end
     @test length(ibs) > 0
     @test all(seg -> length(seg) > 0, ibs)
     @test sum(length, ibs) == L
+end
+
+
+
+
+@testitem "WrightFisher - Events" begin
+    
+    population_size = 100
+    mutation_rate = 2e-8
+    recombination_rate = 1e-8
+    L = 1_000_000_000
+
+    
+    d = Demography()
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = population_size))
+    add_population!(d, Population(id = "pop2a", description = "Population 2A", size = 200))
+    add_population!(d, Population(id = "pop2b", description = "Population 2B", size = population_size))
+    add_population!(d, Population(id = "pop3", description = "Population 3", size = population_size))
+    
+    add_event!(d, PopulationSizeEvent(2, "pop1",  150))
+    add_event!(d, PopulationSplitEvent(4, "pop1", "pop2a", "pop2b"))
+    add_event!(d, PopulationMergeEvent(8, "pop2a", "pop2b", "pop3"))
+    
+    set_start_time!(d, 0)
+    set_end_time!(d, 12)
+    
+
+    @test startswith(APop.summary(d), "Demography with 4 populations, 3 events, start time 0, end time 12")
+
+
+
+    g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)
+
+    model = WrightFisher()
+
+
+    anc = sim_ancestry(model, d, g)
+    @test length(anc.alives) == length(d.populations)
+
+
 end
