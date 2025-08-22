@@ -24,8 +24,7 @@ average_rate(r::UniformRate) = r.rate
 
 
 function StatsBase.sample(u::UniformRate, dt::Float64, n1::Int, n2::Int;
-        multiple_hits = :ignore
-    )
+    multiple_hits=:ignore)
     n = n2 - n1 + 1
     if multiple_hits == :ignore
         k = rand(Poisson(n * u.rate * dt))
@@ -34,15 +33,15 @@ function StatsBase.sample(u::UniformRate, dt::Float64, n1::Int, n2::Int;
         k = rand(Poisson(n * u.rate * dt))
         return unique!(sort!(rand(n1:n2, k)))
     elseif multiple_hits == :JCcorrect
-        prob_corrected = (3/4) * (1 - exp(- 4 * u.rate * dt / 3))
+        prob_corrected = (3 / 4) * (1 - exp(-4 * u.rate * dt / 3))
         k = rand(Poisson(n * prob_corrected))
         k == 0 && return Int64[]
         k >= n && return collect(n1:n2)
-        return sort!(sample(n1:n2, k; replace = false))
+        return sort!(sample(n1:n2, k; replace=false))
     end
 end
 
-StatsBase.sample(u::UniformRate, dt::Float64, n::Int; kwargs...) = sample(u, dt, 1, n, kwargs...)
+StatsBase.sample(u::UniformRate, dt::Float64, n::Int; kwargs...) = sample(u, dt, 1, n; kwargs...)
 
 
 
