@@ -414,6 +414,7 @@ end
 
     @test startswith(APop.summary(d), "Demography with 4 populations, 3 events, start time 0, end time 12")
 
+    println(APop.summary(d))
 
 
     g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)

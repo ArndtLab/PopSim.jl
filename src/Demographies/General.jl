@@ -3,7 +3,7 @@
 # Population
 # ============================================================
 
-export Population, setparam!
+export Population
 
 const TimeType = Int64
 
@@ -33,7 +33,7 @@ Base.size(p::Population) = p.size
 
 growth_rate(p::Population) = p.growth_rate
 
-time0(p::Population) = p.time0
+time_offset(p::Population) = p.time_offset
 
 
 
@@ -198,17 +198,26 @@ function summary(d::Demography)
     io = IOBuffer()
     write(io, "Demography with $(length(d.populations)) populations, " *
            "$(length(d.events)) events, start time $(d.start_time), end time $(d.end_time)")
-    
-    ts = map(d.start_time : d.end_time) do t
+
+    ts = map(enumerate(d.start_time : d.end_time)) do (i, t)
         p = map(p -> lpad(string(d.population_sizes[p][t]), 7), 1:length(d.populations))
-        (t, join(p, " "))
+        (i, t, join(p, " "))
     end
+    ks = map(t->t[1], unique(i -> i[3], ts))
 
-    for (t, s) in ts
-        write(io, "\n", lpad(string(t), 7), ": $s")
+    lastprintedk = 1
+    for k in ks
+        if k > 1
+            (ip, tp, sp) = ts[k-1]
+            if ip > lastprintedk + 1
+                write(io, "\n ...")
+            end
+            write(io, "\n", lpad(string(tp), 7), ": $sp")
+        end
+        write(io, "\n", lpad(string(ts[k][2]), 7), ": ", ts[k][3])
+        lastprintedk = k
     end
-
-    
+        
     return String(take!(io))
 end
 
