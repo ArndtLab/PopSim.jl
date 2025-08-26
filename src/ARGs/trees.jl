@@ -1,6 +1,6 @@
 
 export AbstractCoalescentTree, AbstractMutatedCoalescentTree,
-    CoalescentTreeTwoLineages, CoalescentTree,
+    CoalescentTreeTwoLineages, CoalescentTree, Branch, MutatedBranch,
     timespan, iscoalescent
 
 
@@ -20,12 +20,26 @@ iscoalescent(tree::CoalescentTreeTwoLineages) = tree.timespan >= 0.0
 
 
 
+mutable struct Branch
+    id::Int64
+    time::Float64
+    ancestor_k::Int64
+end
+
+mutable struct MutatedBranch
+    id::Int64
+    time::Float64
+    ancestor_k::Int64
+    mutations::Vector{Int64}
+end
+
+
 struct CoalescentTree{T} <: AbstractCoalescentTree
     ids::Vector{Int64}
     root_id::Int64
     start_time::Float64
     end_time::Float64
-    tree::T
+    branches::T
 end
 
 CoalescentTree(ids::Vector{Int64}, root_id::Int64, start_time::Float64, end_time::Float64) = CoalescentTree{Nothing}(ids, root_id, start_time, end_time, nothing)

@@ -32,13 +32,7 @@ Base.eltype(::Type{IBDIterator{T}}) where {T} = ARGsegment{Int64, CoalescentTree
 
 
 
-function Base.iterate(ti::IBDIterator)
-    pos = 1
-    iterate(ti, pos)
-end
-
-
-function Base.iterate(ti::IBDIterator, pos)
+function Base.iterate(ti::IBDIterator, pos::Int = 1)
     if pos > ti.cos.genome_length
         return nothing
     end
@@ -89,72 +83,78 @@ IBDIteratorMulti(cos::C, ids::Vector{Int64}, end_time::Float64 = NaN) where {C <
 
 
 Base.IteratorSize(::Type{IBDIteratorMulti{T}}) where {T} = Base.SizeUnknown()
-# Base.IteratorEltype(::Type{IBDIteratorMulti{T}}) where {T} = Base.HasEltype()
-# Base.eltype(::Type{IBDIteratorMulti{T}}) where {T} = 
-#     SegItem{Int64, CoalescentTree{Vector{@NamedTuple{pid::Int64, time::Float64, vid_anc::Int64}}}}
+Base.IteratorEltype(::Type{IBDIteratorMulti{T}}) where {T} = Base.HasEltype()
+Base.eltype(::Type{IBDIteratorMulti{T}}) where {T} = ARGsegment{Int64, CoalescentTree{Vector{Branch}}}
 
-function Base.iterate(ti::IBDIteratorMulti)
-    pos = 1
-    iterate(ti, pos)
+
+
+
+mutable struct BranchToMerge
+    child_id::Int
+    child_k::Int
+    ancestor_id::Int
+    nb::Int
 end
 
 
-function Base.iterate(ti::IBDIteratorMulti, pos)
+
+function Base.iterate(ti::IBDIteratorMulti, pos::Int = 1)
     if pos > ti.cos.genome_length
         return nothing
     end
 
-    branches = map(1: 2 * length(ti.ids)-1) do i
-        (pid = i <= length(ti.ids) ? ti.ids[i] : -1, 
-            time = 0.0,
-            vid_anc = -1)
+    branches = map(ti.ids) do id
+        Branch(id, gettime(ti.cos, id), -1)
     end
-    nbranch = length(ti.ids) + 1
+
+
     tmp = map(enumerate(ti.ids)) do (i, p)
-        (vid_child = i, pid_child = p, pid_anc = p, nb = ti.cos.genome_length)
+        BranchToMerge(p, i, p, ti.cos.genome_length)
     end
 
     while true
-        sort!(tmp, by = x -> x.pid_anc, rev = true)
+        sort!(tmp, by = x -> x.ancestor_id, rev = true)
 
-        tmp[1].pid_anc == 0 && break # no more coalescent events
+        tmp[1].ancestor_id == 0 && break # no more coalescent events
 
-        if tmp[1].pid_anc != tmp[2].pid_anc # move
-            npid, nnb = getparentat(ti.cos, tmp[1].pid_anc, pos)
+        if tmp[1].ancestor_id != tmp[2].ancestor_id 
+            # move first backwards in time
+            npid, nnb = getparentat(ti.cos, tmp[1].ancestor_id, pos)
             nnb = min(tmp[1].nb, nnb)
-            tmp[1] = (; tmp[1]..., pid_anc = npid, nb = nnb)
-        else # merge
+            tmp[1].ancestor_id = npid
+            tmp[1].nb = nnb
+        else 
+            # coalesce at least two lineages
             i = 1
             while i+1 <= length(tmp)
-                if tmp[i+1].pid_anc == tmp[1].pid_anc
+                if tmp[i+1].ancestor_id == tmp[1].ancestor_id
                     i += 1
                 else
                     break
                 end
             end
-            nb = minimum(getindex.(tmp[1:i], :nb))
-            for j in 1:i
-                branches[tmp[j].vid_child] = (pid = tmp[j].pid_child, time = gettime(ti.cos, tmp[j].pid_child), vid_anc = nbranch)
+            nb = minimum(t -> t.nb, tmp[1:i])
+
+            for k in 1:i
+                branches[tmp[k].child_k].ancestor_k = length(branches) + 1
             end
-            branches[nbranch] = (pid = tmp[1].pid_anc, time = gettime(ti.cos, tmp[1].pid_anc), vid_anc = -1)
-            tmp[1] = ( vid_child = nbranch, pid_child = tmp[1].pid_anc, pid_anc = tmp[1].pid_anc, nb = nb)
-            nbranch += 1
+            push!(branches, Branch(tmp[1].ancestor_id, gettime(ti.cos, tmp[1].ancestor_id), -1))
+
+            tmp[1].child_id = tmp[1].ancestor_id
+            tmp[1].child_k = length(branches)
+            tmp[1].nb = nb
             deleteat!(tmp, 2:i)
         end
 
         length(tmp) == 1 && break # no more coalescent events
     end
-    for i in 1:length(ti.ids)
-        branches[i] = (; branches[i] ..., time = ti.end_time)
-    end
 
-    nb = minimum(getindex.(tmp, :nb))
-    filter!(x -> x.pid >= 0, branches)
+    nb = minimum(t -> t.nb, tmp)
 
-    pid = length(tmp) == 1 ? tmp[1].pid_child : 0    # pid == 0 signals a non-coalescent event
-    time = pid > 0 ? gettime(ti.cos, pid) : -Inf
 
-    data = CoalescentTree(ti.ids, pid, time, ti.end_time, branches)
+    root_id = length(tmp) == 1 ? tmp[1].child_id : 0    # root_id == 0 signals a non-coalescent event
+    root_time = root_id > 0 ? gettime(ti.cos, root_id) : -Inf
+    data = CoalescentTree(ti.ids, root_id, root_time, ti.end_time, branches)
 
     return ARGsegment(Segment(pos, nb), data), nb + 1
 end
