@@ -162,18 +162,9 @@ IBSIteratorMutated(ibx, vid1::Int64, vid2::Int64) =
     IBSIteratorMutated(ibx, [vid1, vid2],Int[], 0)
 
 
-# function IBSIteratorMutated(ibx)
-#     eltype(ibx) == PopSimBase.Segments.SegItem{Int64, PopSimBase.CoalescentTrees.MutatedSimpleCoalescentTree{Vector{Int64}}} || 
-#         throw(ArgumentError("The collection is not simple, specify the vids"))
-#     IBSIteratorMutated(ibx, Int64[])
-# end
-
-
-
-
 Base.IteratorSize(::Type{IBSIteratorMutated{T,V}}) where {T,V} = Base.SizeUnknown()
-# Base.IteratorEltype(::Type{IBSIteratorMutated{T,V}}) where {T,V} = Base.HasEltype()
-# Base.eltype(::Type{IBSIteratorMutated{T,V}}) where {T,V} = SegItem{Int64, Int64}
+Base.IteratorEltype(::Type{IBSIteratorMutated{T,V}}) where {T,V} = Base.HasEltype()
+Base.eltype(::Type{IBSIteratorMutated{T,V}}) where {T,V} = ARGsegment{Int64, Int64}
 
 
 mutable struct IBSIteratorMutatedState{T}

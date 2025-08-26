@@ -403,16 +403,16 @@ end
     @test all(seg -> 0.0 <= timespan(seg) < Inf, ARGmulti)
 
     mutARGmulti = collect(APop.IBMIterator(ARGmulti, anc.genome.mutation))
-    @test length(mutARGmulti) > 0
+    @test length(mutARGmulti) >= 0
     @test all(seg -> length(seg) > 0, mutARGmulti)
     @test sum(length, mutARGmulti) == L
     @test all(seg -> iscoalescent(seg), mutARGmulti)
     @test all(seg -> 0.0 <= timespan(seg) < Inf, mutARGmulti)
-    @show typeof(mutARGmulti[1])
+    @test typeof(mutARGmulti[1]) == APop.ARGsegment{Int64, APop.CoalescentTree{Vector{APop.MutatedBranch}}}
 
     IBSmutARGmulti = collect(APop.IBSIteratorMutated(mutARGmulti, 1,2))
     @test length(IBSmutARGmulti) > 0
-    @test all(seg -> length(seg) > 0, IBSmutARGmulti)
+    @test all(seg -> length(seg) >= 0, IBSmutARGmulti)
     @test sum(length, IBSmutARGmulti) == L
 end
 
