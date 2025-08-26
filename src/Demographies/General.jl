@@ -204,6 +204,7 @@ function summary(d::Demography)
         (i, t, join(p, " "))
     end
     ks = map(t->t[1], unique(i -> i[3], ts))
+    push!(ks, length(ts))
 
     lastprintedk = 1
     for k in ks
@@ -222,6 +223,30 @@ function summary(d::Demography)
 end
 
 
+
+function TNvector(d::Demography, sequence_length::Int) 
+    if length(d.populations) != 1
+        throw(ArgumentError("TNvector is only defined for demographies with a single population"))
+    end
+    sizes = d.population_sizes[1]
+    t = tlast = d.start_time
+    Nlast = sizes[t]
+    TN = [sequence_length, Nlast]
+
+    while t <= d.end_time
+        if sizes[t] != Nlast || t == d.end_time
+            if tlast != d.start_time
+                push!(TN, t - tlast)
+                push!(TN, sizes[tlast])
+            end
+            tlast = t
+            Nlast = sizes[t]
+        end
+        t += 1
+    end
+
+    return TN
+end
 
 
 

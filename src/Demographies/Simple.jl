@@ -1,7 +1,7 @@
 
 
 
-export AbstractDemography, StationaryPopulation
+export AbstractDemography, StationaryPopulation, TNvector
 
 
 abstract type AbstractDemography end
@@ -36,3 +36,5 @@ Base.size(d::StationaryPopulation) = d.size
 
 Base.show(io::IO, d::StationaryPopulation) = print(io, "StationaryPopulation(ploidy=$(d.ploidy), size=$(d.size))")
 
+
+TNvector(d::StationaryPopulation, sequence_length::Int) = [sequence_length, d.size]

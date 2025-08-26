@@ -19,9 +19,25 @@ using TestItemRunner
 
     @test APop.ploidy(sd) == 2
     @test size(sd) == 100
+
+
+    @test TNvector(sd, 4400) == [4400, 100]
 end
 
+@testitem "TN for varying pop" begin
+    d = Demography()
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = 100, growth_rate = 0.0, time_offset = 0))
+    set_end_time!(d, 5000)
 
+    @test TNvector(d, 2222) == [2222, 100]
+
+    add_event!(d, PopulationSizeEvent(4000, "pop1", 10))
+    add_event!(d, PopulationSizeEvent(4020, "pop1", 10000))
+
+    println(APop.summary(d))
+
+    @test TNvector(d, 2222) == [2222, 100, 20, 10, 980, 10000]
+end
 
 @testitem "Demography" begin
     d = Demography()
@@ -51,6 +67,7 @@ end
     @test d.migration[2, 2] == 0.9
     @test d.migration[3, 3] == 1.0
 
+    @test_throws ArgumentError TNvector(d, 1000)  
 end
 
 
