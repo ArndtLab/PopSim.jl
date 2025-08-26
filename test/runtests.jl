@@ -68,6 +68,7 @@ end
     @test d.migration[3, 3] == 1.0
 
     @test_throws ArgumentError TNvector(d, 1000)  
+    @test_throws ArgumentError APop.get_population_index_by_id(d, "pop4")
 end
 
 
