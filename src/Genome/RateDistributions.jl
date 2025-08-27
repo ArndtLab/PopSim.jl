@@ -41,7 +41,6 @@ function StatsBase.sample(u::UniformRate, dt::Float64, n1::Int, n2::Int;
     end
 end
 
-StatsBase.sample(u::UniformRate, dt::Float64, n::Int; kwargs...) = sample(u, dt, 1, n; kwargs...)
 
 
 
