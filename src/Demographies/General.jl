@@ -55,19 +55,22 @@ end
 struct PopulationSplitEvent <: AbstractAncestryEvent
     time::TimeType
     source_population_id::AbstractString
-
-    target_population_id1::AbstractString
-    target_population_id2::AbstractString
+    target_population_ids::Vector{AbstractString}
 end
+
+PopulationSplitEvent(time::TimeType, source_population_id::AbstractString, 
+    target_population_id1::AbstractString, target_population_id2::AbstractString) =
+    PopulationSplitEvent(time, source_population_id, [target_population_id1, target_population_id2])
 
 struct PopulationMergeEvent <: AbstractAncestryEvent
     time::TimeType
-    source_population_id1::AbstractString
-    source_population_id2::AbstractString
+    source_population_ids::Vector{AbstractString}
     target_population_id::AbstractString
 end
 
-
+PopulationMergeEvent(time::TimeType, source_population_id1::AbstractString, 
+    source_population_id2::AbstractString, target_population_id::AbstractString) =
+    PopulationMergeEvent(time, [source_population_id1, source_population_id2], target_population_id)
 
 export Demography, add_population!, add_event!, set_start_time!, set_end_time!, set_migration!
 
@@ -171,20 +174,19 @@ function fix_population_sizes!(d::Demography)
                 d.population_sizes[i][t] = e.value
             elseif e isa PopulationSplitEvent
                 si = get_population_index_by_id(d, e.source_population_id)
-                t1i = get_population_index_by_id(d, e.target_population_id1)
-                t2i = get_population_index_by_id(d, e.target_population_id2)
                 d.population_sizes[si][t : end] .= 0
-                d.population_sizes[t1i][begin : t-1] .= 0
-                d.population_sizes[t2i][begin : t-1] .= 0
-                @assert d.population_sizes[t1i][t] > 0
-                @assert d.population_sizes[t2i][t] > 0
+                for target_population_id in e.target_population_ids
+                    ti = get_population_index_by_id(d, target_population_id)
+                    d.population_sizes[ti][begin : t-1] .= 0
+                    @assert d.population_sizes[ti][t] > 0
+                end
             elseif e isa PopulationMergeEvent
-                si1 = get_population_index_by_id(d, e.source_population_id1)
-                si2 = get_population_index_by_id(d, e.source_population_id2)
+                for source_population_id in e.source_population_ids
+                    si = get_population_index_by_id(d, source_population_id)
+                    d.population_sizes[si][t : end] .= 0
+                end
                 ti = get_population_index_by_id(d, e.target_population_id)
                 d.population_sizes[ti][begin : t-1] .= 0
-                d.population_sizes[si1][t : end] .= 0
-                d.population_sizes[si2][t : end] .= 0
                 @assert d.population_sizes[ti][t] > 0
             else
                 throw(ArgumentError("Unknown event type: $(typeof(e))"))

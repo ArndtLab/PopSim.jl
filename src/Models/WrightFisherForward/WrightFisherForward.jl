@@ -120,18 +120,19 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
                 throw(ArgumentError("Not implemented event type: $(typeof(e))"))
             elseif e isa PopulationSplitEvent
                 si = get_population_index_by_id(demography, e.source_population_id)
-                t1i = get_population_index_by_id(demography, e.target_population_id1)
-                t2i = get_population_index_by_id(demography, e.target_population_id2)
-                alives[t1i] = alives[si]
-                alives[t2i] = copy(alives[si])
+                for target_population_id in e.target_population_ids
+                    ti = get_population_index_by_id(demography, target_population_id)
+                    alives[ti] = copy(alives[si])
+                end
                 alives[si] = Vector{Individual}()
             elseif e isa PopulationMergeEvent
-                si1 = get_population_index_by_id(demography, e.source_population_id1)
-                si2 = get_population_index_by_id(demography, e.source_population_id2)
                 ti = get_population_index_by_id(demography, e.target_population_id)
-                alives[ti] = vcat(alives[si1], alives[si2])
-                alives[si1] = Vector{Individual}()
-                alives[si2] = Vector{Individual}()
+                alives[ti] = Vector{Individual}()
+                for source_population_id in e.source_population_ids
+                    si = get_population_index_by_id(demography, source_population_id)
+                    append!(alives[ti], alives[si])
+                    alives[si] = Vector{Individual}()
+                end
             else
                 throw(ArgumentError("Unknown event type: $(typeof(e))"))
             end
