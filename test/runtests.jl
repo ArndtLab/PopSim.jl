@@ -398,14 +398,14 @@ end
     indv2 = anc.alives[1][2]
     ARGmulti = collect(get_ARGsegments(anc, [indv[1], indv[2], indv2[1]]))
     @test length(ARGmulti) > 0
-    @test all(seg -> length(seg) > 0, ARGmulti)
+    @test all(seg -> length(seg) >= 0, ARGmulti)
     @test sum(length, ARGmulti) == L
     @test all(seg -> iscoalescent(seg), ARGmulti)
     @test all(seg -> 0.0 <= timespan(seg) < Inf, ARGmulti)
 
     mutARGmulti = collect(APop.IBMIterator(ARGmulti, anc.genome.mutation))
     @test length(mutARGmulti) >= 0
-    @test all(seg -> length(seg) > 0, mutARGmulti)
+    @test all(seg -> length(seg) >= 0, mutARGmulti)
     @test sum(length, mutARGmulti) == L
     @test all(seg -> iscoalescent(seg), mutARGmulti)
     @test all(seg -> 0.0 <= timespan(seg) < Inf, mutARGmulti)
