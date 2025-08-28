@@ -77,8 +77,8 @@ end
     ur = UniformRate(0.1)
     g = Genome(ur, ur, 1000)
     @test length(g) == 1000
-    @test rate(recombination(g)) == 0.1
-    @test rate(mutation(g)) == 0.1
+    @test APop.rate(recombination(g)) == 0.1
+    @test APop.rate(mutation(g)) == 0.1
     @test string(g) == "Genome(recombination=Uniform(rate=0.1), mutation=Uniform(rate=0.1), length=1000)"
 
     g = Genome(recombination_rate=0.1, mutation_rate=0.1, length=1000)
@@ -202,15 +202,15 @@ end
     tree = CoalescentTreeTwoLineages(1, tau)
 
     ibds = [ARGsegment(Segment(1, 1000), tree), ARGsegment(Segment(1001, 2000), tree)]
-    ibs = collect(APop.IBSIteratorNonMutated(ibds,mut))
+    ibs = collect(APop.IBSIterator(ibds,mut))
     @test length(ibs) > 3000
     @test sum(length, ibs) === 2000
 
-    ibs = collect(APop.IBSIteratorNonMutated(ibds, mut, multiple_hits = :as_one))
+    ibs = collect(APop.IBSIterator(ibds, mut, multiple_hits = :as_one))
     @test length(ibs) in [1999,2000,2001]
     @test sum(length, ibs) === 2000
 
-    ibs = collect(APop.IBSIteratorNonMutated(ibds, mut, multiple_hits = :JCcorrect))
+    ibs = collect(APop.IBSIterator(ibds, mut, multiple_hits = :JCcorrect))
     @test length(ibs) < 1750
     @test sum(length, ibs) === 2000
 
@@ -379,21 +379,21 @@ end
     @test all(seg -> iscoalescent(seg), ARG)
     @test all(seg -> 0.0 <= timespan(seg) < Inf, ARG)
 
-
-    ibs = collect(APop.IBSIteratorNonMutated(ARG, anc.genome.mutation))
+    ibs = collect(APop.IBSIterator(ARG, anc.genome.mutation))
     @test length(ibs) > 0
     @test all(seg -> length(seg) >= 0, ibs)
     @test sum(length, ibs) == L
 
-    ibs = collect(APop.IBSIteratorNonMutated(ARG, anc.genome.mutation, multiple_hits = :as_one))
+    ibs = collect(APop.IBSIterator(ARG, anc.genome.mutation, multiple_hits = :as_one))
     @test length(ibs) > 0
     @test all(seg -> length(seg) > 0, ibs)
     @test sum(length, ibs) == L
 
-    ibs = collect(APop.IBSIteratorNonMutated(ARG, anc.genome.mutation, multiple_hits = :JCcorrect))
+    ibs = collect(APop.IBSIterator(ARG, anc.genome.mutation, multiple_hits = :JCcorrect))
     @test length(ibs) > 0
     @test all(seg -> length(seg) > 0, ibs)
     @test sum(length, ibs) == L
+
 
     indv2 = anc.alives[1][2]
     ARGmulti = collect(get_ARGsegments(anc, [indv[1], indv[2], indv2[1]]))
