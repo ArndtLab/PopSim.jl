@@ -69,7 +69,6 @@ function StatsBase.sample(nu::NonUniformRate, dt::Float64, n1::Int, n2::Int)
 
     k = rand(Poisson((R2 - R1) * dt))
 
-
     xs = sort!((R2 - R1) .* rand(k) .+ R1)
     return [searchsortedlast(nu.cprob, x)+1 for x in xs]
 end

@@ -1,5 +1,5 @@
 
-export Genome, rate, recombination, mutation
+export Genome, recombination, mutation
 
 
 
@@ -13,7 +13,7 @@ struct Genome{R <: AbstractRateDistribution, M <: AbstractRateDistribution}
     length::Int
 end
 
-function Genome(; recombination_rate::Float64 = 0.0, mutation_rate::Float64 = 0.0, length::Int = 1000)
+function Genome(; recombination_rate::Float64 = 0.0, mutation_rate::Float64 = 0.0, length::Int = 0)
     recombination = UniformRate(recombination_rate)
     mutation = UniformRate(mutation_rate)
     return Genome(recombination, mutation, length)
