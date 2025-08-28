@@ -4,9 +4,6 @@ export Genome, recombination, mutation
 
 
 
-
-
-
 struct Genome{R <: AbstractRateDistribution, M <: AbstractRateDistribution}
     recombination::R
     mutation::M
