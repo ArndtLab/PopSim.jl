@@ -1,12 +1,11 @@
 
-export AbstractCoalescentTree, AbstractMutatedCoalescentTree,
+export AbstractCoalescentTree,
     CoalescentTreeTwoLineages, CoalescentTree, Branch, MutatedBranch,
     timespan, iscoalescent
 
 
 
 abstract type AbstractCoalescentTree end
-abstract type AbstractMutatedCoalescentTree end
 
 
 struct CoalescentTreeTwoLineages <: AbstractCoalescentTree
