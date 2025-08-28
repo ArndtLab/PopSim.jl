@@ -379,17 +379,17 @@ end
     @test all(seg -> iscoalescent(seg), ARG)
     @test all(seg -> 0.0 <= timespan(seg) < Inf, ARG)
 
-    ibs = collect(APop.IBSIterator(ARG, anc.genome.mutation))
+    ibs = collect(IBSIterator(ARG, anc.genome.mutation))
     @test length(ibs) > 0
     @test all(seg -> length(seg) >= 0, ibs)
     @test sum(length, ibs) == L
 
-    ibs = collect(APop.IBSIterator(ARG, anc.genome.mutation, multiple_hits = :as_one))
+    ibs = collect(IBSIterator(ARG, anc.genome.mutation, multiple_hits = :as_one))
     @test length(ibs) > 0
     @test all(seg -> length(seg) > 0, ibs)
     @test sum(length, ibs) == L
 
-    ibs = collect(APop.IBSIterator(ARG, anc.genome.mutation, multiple_hits = :JCcorrect))
+    ibs = collect(IBSIterator(ARG, anc.genome.mutation, multiple_hits = :JCcorrect))
     @test length(ibs) > 0
     @test all(seg -> length(seg) > 0, ibs)
     @test sum(length, ibs) == L
@@ -403,7 +403,7 @@ end
     @test all(seg -> iscoalescent(seg), ARGmulti)
     @test all(seg -> 0.0 <= timespan(seg) < Inf, ARGmulti)
 
-    mutARGmulti = collect(APop.IBMIterator(ARGmulti, anc.genome.mutation))
+    mutARGmulti = collect(IBMIterator(ARGmulti, anc.genome.mutation))
     @test length(mutARGmulti) >= 0
     @test all(seg -> length(seg) >= 0, mutARGmulti)
     @test sum(length, mutARGmulti) == L
@@ -411,7 +411,7 @@ end
     @test all(seg -> 0.0 <= timespan(seg) < Inf, mutARGmulti)
     @test typeof(mutARGmulti[1]) == APop.ARGsegment{Int64, APop.CoalescentTree{Vector{APop.MutatedBranch}}}
 
-    IBSmutARGmulti = collect(APop.IBSIteratorMutated(mutARGmulti, 1,2))
+    IBSmutARGmulti = collect(IBSIterator(mutARGmulti, 1,2))
     @test length(IBSmutARGmulti) > 0
     @test all(seg -> length(seg) >= 0, IBSmutARGmulti)
     @test sum(length, IBSmutARGmulti) == L

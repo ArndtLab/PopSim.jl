@@ -3,7 +3,7 @@ export IBSIterator, IBMIterator
 
 
 
-mutable struct IBSIterator{T,RD <: AbstractRateDistribution} 
+mutable struct IBSIteratorTwoLineages{T,RD <: AbstractRateDistribution} 
     ibxs::Iterators.Stateful{T}
     mutation::RD
     mut_kwargs
@@ -12,18 +12,18 @@ mutable struct IBSIterator{T,RD <: AbstractRateDistribution}
     lastibxstop::Int64
 end
 
-IBSIterator(ibds, mutation; mut_kwargs...) = 
-    IBSIterator(Iterators.Stateful(ibds), mutation, mut_kwargs, Int[], 0, 0)
+IBSIteratorTwoLineages(ibds, mutation; mut_kwargs...) = 
+    IBSIteratorTwoLineages(Iterators.Stateful(ibds), mutation, mut_kwargs, Int[], 0, 0)
 
 
-Base.IteratorSize(::Type{IBSIterator{T, RD}}) where {T, RD} = Base.SizeUnknown()
-Base.IteratorEltype(::Type{IBSIterator{T}}) where {T} = Base.HasEltype()
-Base.eltype(::Type{IBSIterator{T, RD}}) where {T, RD} = ARGsegment{Int64, Int64}
+Base.IteratorSize(::Type{IBSIteratorTwoLineages{T, RD}}) where {T, RD} = Base.SizeUnknown()
+Base.IteratorEltype(::Type{IBSIteratorTwoLineages{T}}) where {T} = Base.HasEltype()
+Base.eltype(::Type{IBSIteratorTwoLineages{T, RD}}) where {T, RD} = ARGsegment{Int64, Int64}
 
 
 
 
-function Base.iterate(si::IBSIterator, pos = 1)
+function Base.iterate(si::IBSIteratorTwoLineages, pos = 1)
 
     isnothing(pos) && return nothing # no position to iterate
 
@@ -124,15 +124,19 @@ end
 
 
 mutable struct IBSIteratorMutated{T, V}
-    ibxs::T
+    ibxs::Iterators.Stateful{T}
     vids::V
     breaks::Vector{Int64}
+    nbi::Int64
     lastibxstop::Int64
 end
 
 
+IBSIteratorMutated(ibx, vids::Vector{Int64}) = 
+    IBSIteratorMutated(Iterators.Stateful(ibx), vids, Int[], 0, 0)
+
 IBSIteratorMutated(ibx, vid1::Int64, vid2::Int64) = 
-    IBSIteratorMutated(ibx, [vid1, vid2],Int[], 0)
+    IBSIteratorMutated(ibx, [vid1, vid2])
 
 
 Base.IteratorSize(::Type{IBSIteratorMutated{T,V}}) where {T,V} = Base.SizeUnknown()
@@ -140,64 +144,35 @@ Base.IteratorEltype(::Type{IBSIteratorMutated{T,V}}) where {T,V} = Base.HasEltyp
 Base.eltype(::Type{IBSIteratorMutated{T,V}}) where {T,V} = ARGsegment{Int64, Int64}
 
 
-mutable struct IBSIteratorMutatedState{T}
-    ibxstate::Union{Nothing,T}
-    laststop::Int64
-    b::Int64
-end
 
+function Base.iterate(si::IBSIteratorMutated, pos = 1)
 
+    isnothing(pos) && return nothing # no position to iterate
 
-function Base.iterate(si::IBSIteratorMutated)
-    ibx = iterate(si.ibxs)
-    isnothing(ibx) && return nothing # no ibx to iterate
-
-    seg = ibx[1]
-    @assert all(1 .<= si.vids .<= length(data(seg).ids))
-    si.breaks = collect_sprinckled_mutations(data(seg), si.vids)
-    si.lastibxstop = last(seg)
-    state = IBSIteratorMutatedState(ibx[2], 0, 1)
-    iterate(si, state)
-end
-
-
-function Base.iterate(si::IBSIteratorMutated, state)
-    isnothing(state) && return nothing
-
-    mystart = state.laststop + 1
-    # @show mystart, state.b, si.breaks
-
-    if state.b <= length(si.breaks)
-        mystop = si.breaks[state.b]
-        state.b += 1
-        state.laststop = mystop
-        return ARGsegment(Segment(mystart, mystop), 0), state
+    if si.nbi > 0 && si.nbi <= length(si.breaks)
+        mystart = pos
+        mystop = si.breaks[si.nbi]
+        si.nbi += 1
+        return ARGsegment(Segment(mystart, mystop), 0), mystop + 1
     else
         r = 0
         while true
-            ibx = iterate(si.ibxs, state.ibxstate)
-            if isnothing(ibx) # last ibd reached, emit last interval
-                return ARGsegment(Segment(mystart, si.lastibxstop), r), nothing
+            if Iterators.isdone(si.ibxs) # last ibd reached, emit last interval
+                return  ARGsegment(Segment(pos, si.lastibxstop), r), nothing
             end
-
-            state.ibxstate = ibx[2]
-            seg = ibx[1]
+            
+            ibx, _ = iterate(si.ibxs)
             r += 1
-            # println("seg: ", seg)
+            si.lastibxstop = last(ibx)
+            si.breaks = collect_sprinckled_mutations(data(ibx), si.vids)
 
-            si.breaks = collect_sprinckled_mutations(data(seg), si.vids)
-            si.lastibxstop = last(seg)
-
-            if isempty(si.breaks) # no breaks in ibx
-                continue
+            if !isempty(si.breaks)
+                si.nbi = 1
+                mystart = pos
+                mystop = si.breaks[si.nbi]
+                si.nbi += 1
+                return ARGsegment(Segment(mystart, mystop), r), mystop + 1
             end
-
-            # @show si.breaks
-            mystop = si.breaks[1]
-            state.b = 2
-            state.laststop = mystop
-
-            return ARGsegment(Segment(mystart, mystop), r), state
         end
     end
 end
@@ -205,12 +180,11 @@ end
 
 
 
-# IBSIterator(collection, args...; kwargs...) = _IBSIterator(collection, Base.IteratorEltype(collection), args...; kwargs...)
-# _IBSIterator(collection, ::Base.EltypeUnknown, args...; kwargs...) = throw(ArgumentError("The eltype of the collection is unknown"))
-# _IBSIterator(collection, ::Base.HasEltype, args...; kwargs...) =  _IBSIterator(collection, eltype(collection), args...; kwargs...)
+IBSIterator(collection, args...; kwargs...) = _IBSIterator(collection, Base.IteratorEltype(collection), args...; kwargs...)
+_IBSIterator(collection, ::Base.EltypeUnknown, args...; kwargs...) = throw(ArgumentError("The eltype of the collection is unknown"))
+_IBSIterator(collection, ::Base.HasEltype, args...; kwargs...) =  _IBSIterator(collection, eltype(collection), args...; kwargs...)
 
 
-# _IBSIterator(collection, ::Type{SegItem{Int64, PopSimBase.CoalescentTrees.SimpleCoalescentTree}}, args...; kwargs...)  = IBSIteratorNonMutated(collection, args...; kwargs...)
-# _IBSIterator(collection, ::Type{SegItem{Int64, T}}, args...; kwargs...) where {T<:PopSimBase.CoalescentTrees.MutatedCoalescentTree} = IBSIteratorMutated(collection, args...; kwargs...)
-# _IBSIterator(collection, ::Type{SegItem{Int64, T}}, args...; kwargs...) where {T<:PopSimBase.CoalescentTrees.MutatedSimpleCoalescentTree} = IBSIteratorMutated(collection, args...; kwargs...)
+_IBSIterator(collection, ::Type{ARGsegment{Int64, CoalescentTreeTwoLineages}}, args...; kwargs...) = IBSIteratorTwoLineages(collection, args...; kwargs...)
+_IBSIterator(collection, ::Type{ARGsegment{Int64, CoalescentTree{Vector{MutatedBranch}}}}, args...; kwargs...) = IBSIteratorMutated(collection, args...; kwargs...)
 
