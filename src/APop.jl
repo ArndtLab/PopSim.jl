@@ -19,5 +19,7 @@ include("Models/WrightFisherForward/CrossOverStores.jl")
 include("Models/WrightFisherForward/WrightFisherForward.jl")
 include("Models/WrightFisherForward/arg.jl")
 
+include("Models/Hudson/Hudson.jl")
+
 
 end

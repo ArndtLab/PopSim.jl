@@ -511,3 +511,246 @@ end
     @test length(pp) * 0.6 > sum(==(4), pp) > 0.4 * length(pp)
     @test length(pp) * 0.6 > sum(==(5), pp) > 0.4 * length(pp)
 end
+
+@testitem "Hudson StatefulWithDefaultIterator" begin
+    using APop.HudsonModel
+
+    si = HudsonModel.StatefulWithDefaultIterator([1, 2, 3], 0)
+    @test HudsonModel.nextitem(si) == 1
+    @test HudsonModel.nextitem(si) == 2
+    @test HudsonModel.nextitem(si) == 3
+    @test HudsonModel.nextitem(si) == 0
+    @test HudsonModel.nextitem(si) == 0
+    @test HudsonModel.nextitem(si) == 0
+    @test HudsonModel.nextitem(si) == 0
+
+    v = [Segment(1,10), Segment(20,30)]
+    si = HudsonModel.StatefulWithDefaultIterator(v, 400)
+    @test HudsonModel.nextitem(si) == (1, 10)
+    @test HudsonModel.nextitem(si) == (20, 30)
+    @test HudsonModel.nextitem(si) == (400, 400)
+    @test HudsonModel.nextitem(si) == (400, 400)
+    @test HudsonModel.nextitem(si) == (400, 400)
+    @test HudsonModel.nextitem(si) == (400, 400)
+end
+
+
+
+
+@testitem "Hudson distribute" begin
+    using APop.HudsonModel
+    bps = [10, 20, 30, 100, 110, 120, 130, 140, 150, 160]
+
+    vi = [Segment(2, 4)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 1 && length(v2) == 0
+
+    vi = [Segment(1, 1)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 1 && length(v2) == 0
+
+
+    vi = [Segment(172, 175)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) + length(v2) == 1
+
+
+    vi = [Segment(12, 14)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 0 && length(v2) == 1
+
+    vi = [Segment(2, 4), Segment(12, 14)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 1 && length(v2) == 1
+
+
+    vi = [Segment(2, 10)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 1 && length(v2) == 0
+
+    vi = [Segment(11, 14)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 0 && length(v2) == 1
+
+    vi = [Segment(2, 10), Segment(11, 14)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 1 && length(v2) == 1
+
+    vi = [Segment(2, 14)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 1 && length(v2) == 1
+
+
+    vi = [Segment(2, 24)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 2 && length(v2) == 1
+
+    vi = [Segment(2, 34)]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 2 && length(v2) == 2
+
+    vi = Segment{Int}[]
+    v1, v2 = HudsonModel.distribute(vi, bps)
+    @test length(v1) == 0 && length(v2) == 0
+
+    vi = [Segment(2, 34)]
+    v1, v2 = HudsonModel.distribute(vi, Int[])
+    @test length(v1) == 1 && length(v2) == 0
+
+end
+
+
+@testitem "Hudson distribute rate" begin
+    using APop.HudsonModel
+
+    vi = [Segment(1, 1000000)]
+    v1, v2 = HudsonModel.distribute(vi, UniformRate(1e-3))
+
+    @test length(v1) > 0
+    @test length(v2) > 0
+    @test sum(length, v1) + sum(length, v2) == 1000000
+
+    vi = [Segment(1, 1000000), Segment(2000001, 3000000)]
+    v1, v2 = HudsonModel.distribute(vi, UniformRate(1e-3))
+
+    @test length(v1) > 0
+    @test length(v2) > 0
+    @test sum(length, v1) + sum(length, v2) == 2000000
+end
+
+
+@testitem "Hudson coalesce" begin
+    using APop.HudsonModel
+
+
+    t = -1
+    vc = Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}()
+    v1 = [Segment(1, 2), Segment(3, 4)]
+    v2 = [Segment(5, 6), Segment(7, 8)]
+
+    v = HudsonModel.coalesce(v1, v2, vc, t)
+    @test length(v) == 4 && length(vc) == 0
+
+    v1 = [Segment(1, 2), Segment(3, 4)]
+    v2 = [Segment(15, 16), Segment(17, 18)]
+
+    v = HudsonModel.coalesce(v1, v2, empty!(vc), t)
+    @test length(v) == 4 && length(vc) == 0
+    @test vcat(v1, v2) == v
+    
+    v1 = [Segment(1, 20)]
+    v2 = [Segment(4,6)] 
+    v = HudsonModel.coalesce(v1, v2, empty!(vc), t)
+    @test length(v) == 2 && length(vc) == 1
+    @test first(vc[1]) == 4
+    @test last(vc[1]) == 6
+    @test timespan(vc[1]) ==  t
+    
+    v = HudsonModel.coalesce(v2, v1, empty!(vc), t)
+    @test length(v) == 2 && length(vc) == 1
+
+
+    v1 = [Segment(1, 20)]
+    v2 = [Segment(4,4)] 
+    v = HudsonModel.coalesce(v1, v2, empty!(vc), t)
+    @test length(v) == 2 && length(vc) == 1
+
+    v = HudsonModel.coalesce(v2, v1, empty!(vc), t)
+    @test length(v) == 2 && length(vc) == 1
+
+    v1 = [Segment(1, 2), Segment(3, 4)]
+    v2 = [Segment(2, 3), Segment(4, 5)]
+    v = HudsonModel.coalesce(v1, v2, empty!(vc), t)
+    @test length(v) == 2 && length(vc) == 3
+
+    v1 = [Segment(1, 2), Segment(3, 4)]
+    v = HudsonModel.coalesce(v1, v1, empty!(vc), t)
+    @test length(v) == 0 && length(vc) == 2
+
+    v1 = [Segment(1,1), Segment(3, 3)]
+    v = HudsonModel.coalesce(v1, v1, empty!(vc), t)
+    @test length(v) == 0 && length(vc) == 2
+end
+
+
+
+@testitem "coalesce loop" begin
+    using APop.HudsonModel
+    t = 1
+    
+    a1 = 100
+    for l1 in 1:5
+        for l2 in 1:5
+            for a2 in a1-l2-1 : a1 + l1 + 1
+                v1 = [Segment(a1, a1 + l1)]
+                v2 = [Segment(a2, a2 + l2)]
+                vc = Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}()
+                v = HudsonModel.coalesce(v1, v2, vc, t)
+                @test length(vc) <= 1
+                @test length(v) <= 2
+                @test length(v) + length(vc) >= 1
+            end
+        end
+    end
+end
+
+
+
+@testitem "Hudson distribute & coalesce" begin
+    using APop.HudsonModel
+
+    v1 = [Segment(1, 100)]
+    v2 = [Segment(1, 100)]
+    vc = Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}()
+
+
+    bps = [30,50,70,90]
+    v11, v12 = HudsonModel.distribute(v1, bps)
+
+    bps = [10,50,60]
+    v21, v22 = HudsonModel.distribute(v2, bps)
+
+    t = 1
+    v3 = HudsonModel.coalesce(v11, v21, vc, t)
+    v4 = HudsonModel.coalesce(v12, v22, vc, t)
+
+    t = 2
+    v5 = HudsonModel.coalesce(v3, v4, vc, t)
+
+    sort!(vc, by = first)
+    @test length(v5) == 0
+    @test sum(length, vc) == 100
+
+end
+
+
+@testitem "Hudson StationaryPopulation" begin
+    using APop.HudsonModel
+
+
+    for genome_length in [1000, 10000, 1000000],
+            population_size in [100, 1000],
+            recombination_rate in [1.0e-8, 1.0e-9],
+            mutation_rate in [1.0e-9, 1.0e-10]
+            
+
+    
+        d = Demography()
+        add_population!(d, Population(id = "pop1", size = population_size))
+        set_end_time!(d, 4000)
+    
+        g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  genome_length)
+
+        model = Hudson()
+
+
+
+        ibds = sim_ancestry(model, d, g)
+        @test sum(length, ibds) == genome_length
+        ibdsf = filter(x -> length(x) > 1, ibds)
+
+        @test sum(length, IBSIterator(ibdsf, mutation(g))) == genome_length
+
+    end
+end
+
