@@ -782,7 +782,6 @@ end
         @test sum(length, ibds) == genome_length
         ibm = collect(IBMIterator(ibds, g.mutation))
         @test sum(length, ibm) == genome_length
-        @show length(ibm), eltype(ibm)
         ibs = IBSIterator(ibm, 1,2)
         @test sum(length, ibs) == genome_length
 
