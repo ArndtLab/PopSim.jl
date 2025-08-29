@@ -65,26 +65,26 @@ end
 
 
 
-struct IBDIteratorMulti{C<: AbstractCrossoverStore}
+struct IBDIteratorMulti{C<: AbstractCrossoverStore, F}
     cos::C
     ids::Vector{Int64}
-    end_time::Float64
+    end_time::F
 
-    function IBDIteratorMulti{C}(cos, ids::Vector{Int64}, end_time::Float64) where{C <: AbstractCrossoverStore} 
+    function IBDIteratorMulti{C, F}(cos, ids::Vector{Int64}, end_time::F) where{C <: AbstractCrossoverStore, F}
         length(ids) >= 2 || throw(ArgumentError("The ids must be a vector of length >= 2"))
         new(cos, ids, end_time)
     end
 end
 
-IBDIteratorMulti(cos::C, ids::Vector{Int64}, end_time::Float64 = NaN) where {C <: AbstractCrossoverStore} = 
-    IBDIteratorMulti{C}(cos, ids, end_time)
+IBDIteratorMulti(cos::C, ids::Vector{Int64}, end_time::F) where {C <: AbstractCrossoverStore, F} = 
+    IBDIteratorMulti{C, F}(cos, ids, end_time)
 
 
 
 
-Base.IteratorSize(::Type{IBDIteratorMulti{T}}) where {T} = Base.SizeUnknown()
-Base.IteratorEltype(::Type{IBDIteratorMulti{T}}) where {T} = Base.HasEltype()
-Base.eltype(::Type{IBDIteratorMulti{T}}) where {T} = ARGsegment{Int64, CoalescentTree{Vector{Branch}}}
+Base.IteratorSize(::Type{IBDIteratorMulti{T, F}}) where {T, F} = Base.SizeUnknown()
+Base.IteratorEltype(::Type{IBDIteratorMulti{T, F}}) where {T, F} = Base.HasEltype()
+Base.eltype(::Type{IBDIteratorMulti{T, F}}) where {T, F} = ARGsegment{Int64, CoalescentTree{Vector{Branch}, F}}
 
 
 

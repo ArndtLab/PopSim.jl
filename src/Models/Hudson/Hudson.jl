@@ -7,22 +7,22 @@ using ..APop
 struct Hudson end
 
 
-mutable struct StatefulWithDefaultIterator{T}
+mutable struct StatefulWithDefaultIterator{T, D}
     v::Vector{T}
     k::Int
-    default::T
+    default::D
 end
 
-StatefulWithDefaultIterator(v::Vector{T}, default::T) where {T} = 
+StatefulWithDefaultIterator(v::Vector{T}, default::D) where {T, D} = 
     StatefulWithDefaultIterator(v, 1, default)
 
-function StatefulWithDefaultIterator(v::Vector{Segment{T}}, default::T) where {T} 
+function StatefulWithDefaultIterator(v::Vector{Segment{T}}, default::D) where {T, D} 
     vt = map(v -> (first(v), last(v)), v)
     StatefulWithDefaultIterator(vt, 1, (default, default))
 end
 
-function StatefulWithDefaultIterator(v::Vector{ARGsegment{T, D}}, default::T) where {T, D} 
-    vt = map(v -> (first(v), last(v)), data(v))
+function StatefulWithDefaultIterator(v::Vector{ARGsegment{T, D}}, default::S) where {T, D, S} 
+    vt = map(v -> (first(v), last(v), v.data), v)
     StatefulWithDefaultIterator(vt, 1, (default, default, nothing))
 end
 
@@ -168,12 +168,12 @@ function coalesce(
     v1::Vector{Segment{T}},
     v2::Vector{Segment{T}},
     vc::Vector{ARGsegment{T, CoalescentTreeTwoLineages}},
-    delta_t::F,
-    n::Int = 2
+    t::F, tmax::F,
+    n::Int
 ) where {T<:Integer,F<:Real}
     
     @assert n == 2
-
+    delta_t = tmax - t
     length(v1) == 0 && return v2
     length(v2) == 0 && return v1
 
@@ -245,12 +245,12 @@ end
 
 
 function coalesce(
-    v1::Vector{ARGsegment{Segment{T}, D}},
-    v2::Vector{ARGsegment{Segment{T}, D}},
-    vc::Vector{ARGsegment{Segment{T}, D}},
-    delta_t::F,
+    v1::Vector{ARGsegment{T, HudsonARG{F}}} ,
+    v2::Vector{ARGsegment{T, HudsonARG{F}}} ,
+    vc::Vector{ARGsegment{T, HudsonARG{F}}},
+    t::F, tmax::F,
     n::Int
-) where {T<:Integer,D ,F<:Real}
+) where {T<:Integer ,F<:Real}
 
 
     length(v1) == 0 && return v2
@@ -287,7 +287,7 @@ function coalesce(
 
         if pos == next1stop && pos == next2stop
             @assert next1start == next2start
-            tree = HudsonARG{T}(0, delta_t, next1data, next2data)
+            tree = HudsonARG{T}(0, t, next1data, next2data)
             if tree.nleaves == n
                 push!(vc, ARGsegment(Segment(next1start, pos), tree))
             else
@@ -302,7 +302,7 @@ function coalesce(
             nextpos = min(next1start, next2start)
         elseif pos == next1stop && next2stop > pos
             @assert next1start == next2start
-            tree = HudsonARG{T}(0, delta_t, next1data, next2data)
+            tree = HudsonARG{T}(0, t, next1data, next2data)
             if tree.nleaves == n
                 push!(vc, ARGsegment(Segment(next1start, pos), tree))
             else
@@ -317,7 +317,7 @@ function coalesce(
             nextpos = min(next1start, next2start)
         elseif pos == next2stop && next1stop > pos
             @assert next1start == next2start
-            tree = HudsonARG{T}(0, delta_t, next1data, next2data)
+            tree = HudsonARG{T}(0, t, next1data, next2data)
             if tree.nleaves == n
                 push!(vc, ARGsegment(Segment(next1start, pos), tree))
             else
@@ -376,7 +376,7 @@ function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome
         vc = Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}()
     else
         v1 = map(1:n) do i
-            [ARGsegment(Segment{Int}(1, L), HudsonARG{Int}(i, t))]
+            [ARGsegment(Segment{Int}(1, L), HudsonARG{Int}(i, tmax))]
         end
         v2 = similar(v1, 0)
         vc = similar(v1[1], 0)
@@ -397,7 +397,7 @@ function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome
                 if k > length(v2)
                     push!(v2, vi1)
                 else
-                    v2[k] = coalesce(v2[k], vi1, vc, tmax - t)
+                    v2[k] = coalesce(v2[k], vi1, vc, t, tmax, n)
                 end
             end
 
@@ -406,7 +406,7 @@ function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome
                 if k > length(v2)
                     push!(v2, vi2)
                 else
-                    v2[k] = coalesce(v2[k], vi2, vc, tmax - t)
+                    v2[k] = coalesce(v2[k], vi2, vc, t, tmax, n)
                 end
             end
         end
@@ -428,22 +428,22 @@ end
 
 
 
-function createbranches!(arg, branches, nextinternal, idc, parent_idc)
-    branches[idc] = (pid = idc, time = arg.time, vid_anc = parent_idc)
+function createbranches!(arg, branches, nextinternal, idc, parent_idc, last_time)
+    branches[idc] = Branch(idc, arg.time, parent_idc)
     if arg.nleaves == 1
         return
     else 
         if arg.child1.nleaves == 1
-            branches[arg.child1.id] = (pid = arg.child1.id, time = 0, vid_anc = idc)
+            branches[arg.child1.id] = Branch(arg.child1.id, last_time, idc)
         else
             nextinternal -= 1
-            createbranches!(arg.child1, branches, nextinternal, nextinternal + 1, idc)
+            createbranches!(arg.child1, branches, nextinternal, nextinternal + 1, idc, last_time)
         end
         if arg.child2.nleaves == 1
-            branches[arg.child2.id] = (pid = arg.child2.id, time = 0, vid_anc = idc)
+            branches[arg.child2.id] = Branch(arg.child2.id, last_time, idc)
         else
             nextinternal -= 1
-            createbranches!(arg.child2, branches, nextinternal, nextinternal + 1, idc)
+            createbranches!(arg.child2, branches, nextinternal, nextinternal + 1, idc, last_time)
         end
         return
     end
@@ -453,25 +453,24 @@ function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, Coalesc
     return sa.treedata
 end
 
-# function get_ARGsegments(sa::SimulatedAncestry, ids::Vector{Int64}) where {M<:Hudson}
-#     # generate the coalescent trees
-#     # for each segment in vc
-#     map(vc) do vci
-#         ids = collect(1:n)
-#         first_id = 2 * n - 1 
-#         idc = first_id
-#         first_time = float(vci.data.time)
-#         last_time = 0.0 
-#         branches = fill((pid = -1, time = 0.0, vid_anc = -1), idc)
+function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, HudsonARG{F}}}}) where {M<:Hudson, F}
+    n = sum(values(sa.sample))
 
-#         nextinternal = idc - 1
-#         parent_idc = -1
-#         createbranches!(vci.data, branches, nextinternal, idc, parent_idc)
+    map(sa.treedata) do vci
+        ids = collect(1:n)
+        first_id = 2 * n - 1 
+        idc = first_id
+        first_time = vci.data.time
+        last_time = sa.demography.end_time
+        branches = map(i -> Branch(-1, 0.0, -1), 1:idc)
 
-#         tree = CoalescentTrees.CoalescentTree(ids, first_id, first_time, last_time, branches)
+        nextinternal = idc - 1
+        parent_idc = -1
+        createbranches!(vci.data, branches, nextinternal, idc, parent_idc, last_time)
 
-#         SegItem(Segment(start(vci), stop(vci)), tree)
-#     end
-# end
+        tree = CoalescentTree(ids, first_id, first_time, last_time, branches)
+        ARGsegment(vci.segment, tree)
+    end
+end
 
 end # module Hudson

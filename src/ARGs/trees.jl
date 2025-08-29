@@ -33,21 +33,21 @@ mutable struct MutatedBranch
 end
 
 
-struct CoalescentTree{T} <: AbstractCoalescentTree
+struct CoalescentTree{T, F} <: AbstractCoalescentTree
     ids::Vector{Int64}
     root_id::Int64
-    start_time::Float64
-    end_time::Float64
+    start_time::F
+    end_time::F
     branches::T
 end
 
-CoalescentTree(ids::Vector{Int64}, root_id::Int64, start_time::Float64, end_time::Float64) = CoalescentTree{Nothing}(ids, root_id, start_time, end_time, nothing)
+CoalescentTree(ids::Vector{Int64}, root_id::Int64, start_time::F, end_time::F) where {F} = CoalescentTree{Nothing}(ids, root_id, start_time, end_time, nothing)
 
-start_time(ct::CoalescentTree{T}) where {T} = ct.start_time
-end_time(ct::CoalescentTree{T}) where {T} = ct.end_time
-timespan(ct::CoalescentTree{T}) where {T} = end_time(ct) - start_time(ct)
-root_id(ct::CoalescentTree{T}) where {T}   = ct.root_id
-iscoalescent(ct::CoalescentTree{T}) where {T} = root_id(ct) > 0
+start_time(ct::CoalescentTree{T, F}) where {T, F} = ct.start_time
+end_time(ct::CoalescentTree{T, F}) where {T, F} = ct.end_time
+timespan(ct::CoalescentTree{T, F}) where {T, F} = end_time(ct) - start_time(ct)
+root_id(ct::CoalescentTree{T, F}) where {T, F}   = ct.root_id
+iscoalescent(ct::CoalescentTree{T, F}) where {T, F} = root_id(ct) > 0
 
-Base.show(io::IO, ct::CoalescentTree{T}) where {T} = print(io, "CoalescentTree starting at $(ct.start_time) in $(ct.root_id) for $(length(ct.ids)) individuals")
+Base.show(io::IO, ct::CoalescentTree{T, F}) where {T, F} = print(io, "CoalescentTree starting at $(ct.start_time) in $(ct.root_id) for $(length(ct.ids)) individuals")
 

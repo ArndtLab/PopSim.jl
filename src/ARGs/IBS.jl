@@ -63,7 +63,7 @@ end
 # -----------------------------------------------------------------------------
 
 
-function sprinckle_mutations(s::ARGsegment{Int64, CoalescentTree{Vector{Branch}}}, mut::AbstractRateDistribution; kwargs...) 
+function sprinckle_mutations(s::ARGsegment{Int64, CoalescentTree{Vector{Branch},F}}, mut::AbstractRateDistribution; kwargs...)::ARGsegment{Int64, CoalescentTree{Vector{MutatedBranch},F}} where {F}
 
     tree = data(s)
     branches = tree.branches
@@ -80,7 +80,7 @@ function sprinckle_mutations(s::ARGsegment{Int64, CoalescentTree{Vector{Branch}}
     end
     muttree = CoalescentTree(tree.ids, tree.root_id, tree.start_time, tree.end_time, mutbranches)
 
-    ARGsegment(s.segment, muttree)
+    ARGsegment(s.segment, muttree)::ARGsegment{Int64, CoalescentTree{Vector{MutatedBranch},F}}
 end
 
 
@@ -89,10 +89,11 @@ function IBMIterator(iter, mutation; kwargs...)
 end
 
 
+
 # -----------------------------------------------------------------------------
 
 
-function collect_sprinckled_mutations(ct::CoalescentTree{Vector{MutatedBranch}}, id_ks::Vector{Int64})
+function collect_sprinckled_mutations(ct::CoalescentTree{Vector{MutatedBranch},F}, id_ks::Vector{Int64}) where {F}
     breaks = Int64[]
     ks = sort(id_ks)
     while true
@@ -186,5 +187,5 @@ _IBSIterator(collection, ::Base.HasEltype, args...; kwargs...) =  _IBSIterator(c
 
 
 _IBSIterator(collection, ::Type{ARGsegment{Int64, CoalescentTreeTwoLineages}}, args...; kwargs...) = IBSIteratorTwoLineages(collection, args...; kwargs...)
-_IBSIterator(collection, ::Type{ARGsegment{Int64, CoalescentTree{Vector{MutatedBranch}}}}, args...; kwargs...) = IBSIteratorMutated(collection, args...; kwargs...)
+_IBSIterator(collection, ::Type{ARGsegment{Int64, CoalescentTree{Vector{MutatedBranch}, F}}}, args...; kwargs...) where {F} = IBSIteratorMutated(collection, args...; kwargs...)
 
