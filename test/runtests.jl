@@ -743,12 +743,11 @@ end
 
         model = Hudson()
 
+        anc = sim_ancestry(model, d, g, 2)
+        ibds = APop.HudsonModel.get_ARGsegments(anc) 
 
-
-        ibds = sim_ancestry(model, d, g, Dict("pop1" => 2))
-        @test sum(length, ibds.vc) == genome_length
-
-        @test sum(length, IBSIterator(ibds.vc, mutation(g))) == genome_length
+        @test sum(length, ibds) == genome_length
+        @test sum(length, IBSIterator(ibds, mutation(g))) == genome_length
 
     end
 end
