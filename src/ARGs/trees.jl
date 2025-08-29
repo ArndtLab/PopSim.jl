@@ -17,6 +17,7 @@ end
 timespan(tree::CoalescentTreeTwoLineages) = tree.timespan
 iscoalescent(tree::CoalescentTreeTwoLineages) = tree.timespan >= 0.0
 
+Base.show(io::IO, ct::CoalescentTreeTwoLineages) = print(io, "CoalescentTreeTwoLineages starting in $(ct.root_id) with timespan $(ct.timespan)")
 
 
 mutable struct Branch
@@ -41,7 +42,6 @@ struct CoalescentTree{T, F} <: AbstractCoalescentTree
     branches::T
 end
 
-CoalescentTree(ids::Vector{Int64}, root_id::Int64, start_time::F, end_time::F) where {F} = CoalescentTree{Nothing}(ids, root_id, start_time, end_time, nothing)
 
 start_time(ct::CoalescentTree{T, F}) where {T, F} = ct.start_time
 end_time(ct::CoalescentTree{T, F}) where {T, F} = ct.end_time

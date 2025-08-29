@@ -175,7 +175,22 @@ end
     end
 end
 
+@testitem "CoalescentTree" begin
+    c = CoalescentTree([1, 3] , 100, 0.0, 20.0, [0.0, 0.0])
+    @test c.root_id == 100
+    @test c.start_time == 0.0
+    @test c.end_time == 20.0
+    @test timespan(c) == 20.0
+    @test length(c.branches) == 2
+    @test string(c) == "CoalescentTree starting at 0.0 in 100 for 2 individuals"
 
+    c = CoalescentTreeTwoLineages(100, 50.0)
+    @test c.root_id == 100
+    @test c.timespan == 50.0
+    @test timespan(c) == 50.0
+    @test string(c) == "CoalescentTreeTwoLineages starting in 100 with timespan 50.0"
+
+end
 
 
 
