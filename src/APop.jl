@@ -14,6 +14,7 @@ include("ARGs/IBS.jl")
 
 include("Demographies/Simple.jl")
 include("Demographies/General.jl")
+include("Demographies/Samples.jl")
 
 include("Models/WrightFisherForward/CrossOverStores.jl")
 include("Models/WrightFisherForward/WrightFisherForward.jl")

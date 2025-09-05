@@ -459,8 +459,23 @@ end
 
     @test startswith(APop.summary(d), "Demography with 4 populations, 3 events, start time 0, end time 12")
 
-    println(APop.summary(d))
+    out = """
+Demography with 4 populations, 3 events, start time 0, end time 12
+     0:     100       0       0       0
+     1:     100       0       0       0
+     2:     150       0       0       0
+     3:     150       0       0       0
+     4:       0     200     100       0
+ ...
+     7:       0     200     100       0
+     8:       0       0       0     100
+ ...
+     11:       0       0       0     100
+     12:       0       0       0     100"""
 
+
+    out1 = APop.summary(d)
+    @test replace(out, r"\s+" => "") == replace(out1, r"\s+" => "")
 
     g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)
 
@@ -469,13 +484,11 @@ end
 
     anc = sim_ancestry(model, d, g)
     @test length(anc.alives) == length(d.populations)
-
-
 end
 
 
 
-@testitem "WrightFisher - Migration Sampler" begin
+@testitem "migration_parent_pop_sampler" begin
     
     population_size = 100
     mutation_rate = 2e-8
@@ -803,3 +816,43 @@ end
     end
 end
 
+
+
+@testitem "Hudson - Events" begin
+    using APop.HudsonModel
+
+    population_size = 100
+    mutation_rate = 2e-8
+    recombination_rate = 1e-8
+    L = 1_000_000_000
+
+    
+    d = Demography()
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = population_size))
+    add_population!(d, Population(id = "pop2a", description = "Population 2A", size = 200))
+    add_population!(d, Population(id = "pop2b", description = "Population 2B", size = population_size))
+    add_population!(d, Population(id = "pop3", description = "Population 3", size = population_size))
+    
+    add_event!(d, PopulationSizeEvent(2, "pop1",  150))
+    add_event!(d, PopulationSplitEvent(4, "pop1", "pop2a", "pop2b"))
+    add_event!(d, PopulationMergeEvent(8, "pop2a", "pop2b", "pop3"))
+    
+    set_start_time!(d, 0)
+    set_end_time!(d, 12)
+    
+
+    g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)
+
+    model = Hudson()
+
+    sample = Sample(d, 2, population = "pop3")
+
+
+    anc = sim_ancestry(model, d, g, sample)
+    ibds = APop.HudsonModel.get_ARGsegments(anc) 
+
+    @test sum(length, ibds) == L
+
+    
+
+end

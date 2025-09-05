@@ -3,6 +3,7 @@ module HudsonModel
 export Hudson, sim_ancestry
 
 using ..APop
+using Distributions
 
 struct Hudson end
 
@@ -340,80 +341,144 @@ struct SimulatedAncestry{M <: Hudson, T}
     model::M
     demography::Demography
     genome::Genome
-    sample::Dict{String, Int}
+    sample::Sample
     treedata::T
 end
 
 function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
     sample::Int)
     
-    if length(demography.populations) != 1
-        throw(ArgumentError("You need to specify sample as a Dict{String, Int}"))
-    end
-    if sample < 2
-        throw(ArgumentError("Sample size must be at least 2"))
-    end
-    sample = Dict(demography.populations[1].id => sample)
+    sample = Sample(demography, sample)
     APop.sim_ancestry(model, demography, genome, sample)
 end
 
 function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
-    sample::Dict{String, Int})
+    sample::Sample)
     
     
-    @assert length(demography.populations) == 1 "not implemented"
+    # @assert length(demography.populations) == 1 "not implemented"
+    @assert demography.ploidy == 2 "not implemented"
 
     tmax = demography.end_time
     tmin = demography.start_time
     L = length(genome)
+    migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
 
-    n = sum(values(sample))
+    nextevent = length(demography.events)
 
-    # initial segments
-    if n == 2
-        v1 = [[Segment{Int}(1, L)], [Segment{Int}(1, L)]]
-        v2 = similar(v1, 0)
-        vc = Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}()
-    else
-        v1 = map(1:n) do i
-            [ARGsegment(Segment{Int}(1, L), HudsonARG{Int}(i, tmax))]
+    nallsamples = length(sample)
+
+    v1s = map(demography.populations, demography.population_sizes) do pop, pop_sizes
+        Nend = pop_sizes[tmax]
+        nsample = length(filter(id -> id == pop.id, sample.ids))
+        nsample > Nend && throw(ArgumentError("Number of samples ($nsample) cannot exceed population size at end time ($Nend) for population '$(pop.id)'."))
+        if nallsamples == 2
+            map(1:nsample) do _
+                one_indv = [Segment{Int}(1, L)]
+            end
+        else
+            ks = findall(id -> id == pop.id, sample.ids)
+            map(ks) do k
+                [ARGsegment(Segment{Int}(1, L), HudsonARG{Int}(k, tmax))]
+            end
         end
-        v2 = similar(v1, 0)
-        vc = similar(v1[1], 0)
     end
+    v2s = map(v1s) do v1
+        similar(v1, 0)
+    end
+    vc = nallsamples == 2 ? Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}() : Vector{ARGsegment{Int, HudsonARG{Int}}}()
 
 
 
-    t = tmax - 1
+    t = tmax
     while true
-        empty!(v2)
+        # print("t=$t\t")
+        # for p in 1:length(demography.populations)
+        #     print(length(v1s[p]), " ")
+        # end
+        # println()
 
-        N = demography.population_sizes[1][t < tmin ? tmin : t]
-        for vi in v1
-            vi1, vi2 = distribute(vi, recombination(genome))
+        # clean 
+        tprev = max(t - 1, tmin)
+        foreach(empty!, v2s)
 
-            if !isempty(vi1)
-                k = rand(1:2*N)
-                if k > length(v2)
-                    push!(v2, vi1)
-                else
-                    v2[k] = coalesce(v2[k], vi1, vc, t, tmax, n)
+        # reproduction
+        for p in 1:length(demography.populations)
+            
+            for vi in v1s[p]
+                # choose parentpool 
+                parentpool = migration_parent_pop_sampler[p]()
+                N = demography.population_sizes[parentpool][max(t, tmin)]
+                @assert N > 0 "Population size must be > 0: p=$p t=$t parentpool=$parentpool"
+
+                vi1, vi2 = distribute(vi, recombination(genome))
+                
+                if !isempty(vi1)
+                    k = rand(1:2*N)
+                    if k > length(v2s[parentpool])
+                        push!(v2s[parentpool], vi1)
+                    else
+                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi1, vc, t - 1, tmax, nallsamples)
+                    end
+                end
+                
+                if !isempty(vi2)
+                    k = rand(1:2*N)
+                    if k > length(v2s[parentpool])
+                        push!(v2s[parentpool], vi2)
+                    else
+                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi2, vc, t - 1, tmax, nallsamples)
+                    end
                 end
             end
-
-            if !isempty(vi2)
-                k = rand(1:2*N)
-                if k > length(v2)
-                    push!(v2, vi2)
-                else
-                    v2[k] = coalesce(v2[k], vi2, vc, t, tmax, n)
-                end
-            end
+            
+        end
+        for p in 1:length(demography.populations)
+            v1s[p] = filter(x -> length(x) > 0, v2s[p])
+        end
+        
+        if all(isempty, v1s) # every linage coalesced
+            break
         end
 
-        v1 = filter(x -> length(x) > 0, v2)
-        if isempty(v1)
-            break
+        # handle events
+
+        while nextevent > 0 && demography.events[nextevent].time >= t
+            e = demography.events[nextevent]
+            nextevent -= 1
+            # process event
+
+            if e isa PopulationSizeEvent
+                continue  # already taken care of in fix_population_sizes!
+            elseif e isa PopulationSplitEvent
+                si = APop.get_population_index_by_id(demography, e.source_population_id)
+                @assert isempty(v1s[si])
+                empty!(v1s[si])
+                for target_population_id in e.target_population_ids
+                    ti = APop.get_population_index_by_id(demography, target_population_id)
+                    append!(v1s[si], v1s[ti])
+                    empty!(v1s[ti])
+                end
+            elseif e isa PopulationMergeEvent
+                ti = APop.get_population_index_by_id(demography, e.target_population_id)
+                sis = map(e.source_population_ids) do source_population_id
+                    APop.get_population_index_by_id(demography, source_population_id)
+                end
+                @assert all(i -> isempty(v1s[i]), sis)
+                props = map(sis) do si
+                    demography.population_sizes[si][tprev]
+                end
+                @assert sum(props) > 0
+                distprop = Categorical(props ./ sum(props))
+                
+                for v in v1s[ti]
+                    push!(v1s[sis[rand(distprop)]], v)
+                end
+                empty!(v1s[ti])
+            else
+                throw(ArgumentError("Unknown event type: $(typeof(e))"))
+            end
+
         end
 
         t -= 1
@@ -454,7 +519,7 @@ function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, Coalesc
 end
 
 function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, HudsonARG{F}}}}) where {M<:Hudson, F}
-    n = sum(values(sa.sample))
+    n = length(sa.sample)
 
     map(sa.treedata) do vci
         ids = collect(1:n)
