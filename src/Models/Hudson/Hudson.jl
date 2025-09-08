@@ -17,10 +17,10 @@ end
 StatefulWithDefaultIterator(v::Vector{T}, default::D) where {T, D} = 
     StatefulWithDefaultIterator(v, 1, default)
 
-function StatefulWithDefaultIterator(v::Vector{Segment{T}}, default::D) where {T, D} 
-    vt = map(v -> (first(v), last(v)), v)
-    StatefulWithDefaultIterator(vt, 1, (default, default))
-end
+# function StatefulWithDefaultIterator(v::Vector{Segment{T}}, default::D) where {T, D} 
+#     vt = map(v -> (first(v), last(v)), v)
+#     StatefulWithDefaultIterator(vt, 1, (default, default))
+# end
 
 function StatefulWithDefaultIterator(v::Vector{ARGsegment{T, D}}, default::S) where {T, D, S} 
     vt = map(v -> (first(v), last(v), v.data), v)
@@ -72,7 +72,8 @@ function distribute(vi::Vector{Segment{T}}, bps::Vector{T}) where {T<:Integer}
     bpsi = StatefulWithDefaultIterator(bps, posmax)
     nextbppos = nextitem(bpsi)
 
-    nextintervalstart, nextintervalstop = nextitem(vis)
+    nv = nextitem(vis)
+    nextintervalstart, nextintervalstop = first(nv), last(nv)
 
     pos = min(nextintervalstop, nextbppos)
     k = 1
@@ -88,7 +89,8 @@ function distribute(vi::Vector{Segment{T}}, bps::Vector{T}) where {T<:Integer}
             nextintervalstart = pos + 1
         end
         if pos == nextintervalstop
-            nextintervalstart, nextintervalstop = nextitem(vis)
+            nv = nextitem(vis)
+            nextintervalstart, nextintervalstop = first(nv), last(nv)
         end
         if pos == nextbppos
             nextbppos = nextitem(bpsi)
@@ -103,7 +105,7 @@ function distribute(vi::Vector{Segment{T}}, bps::Vector{T}) where {T<:Integer}
         # k > 20 && break
     end
 
-    v1, v2
+    v1::Vector{Segment{T}}, v2::Vector{Segment{T}}
 end
 
 
@@ -152,7 +154,7 @@ end
 
 
 
-function distribute(vi::Vector, mutation::AbstractRateDistribution)
+function distribute(vi::Vector{T}, mutation::AbstractRateDistribution)::Tuple{Vector{T}, Vector{T}} where {T}
 
     length(vi) == 0 && return (similar(vi, 0), similar(vi, 0))
 
@@ -171,12 +173,12 @@ function coalesce(
     vc::Vector{ARGsegment{T, CoalescentTreeTwoLineages}},
     t::F, tmax::F,
     n::Int
-) where {T<:Integer,F<:Real}
+)::Vector{Segment{T}} where {T<:Integer,F<:Real}
     
     @assert n == 2
     delta_t = tmax - t
-    length(v1) == 0 && return v2
-    length(v2) == 0 && return v1
+    length(v1) == 0 && return v2::Vector{Segment{T}}
+    length(v2) == 0 && return v1::Vector{Segment{T}}
 
     v = Vector{Segment{T}}()
 
@@ -184,8 +186,8 @@ function coalesce(
 
     v1s = StatefulWithDefaultIterator(v1, posmax)
     v2s = StatefulWithDefaultIterator(v2, posmax)
-    next1start, next1stop = nextitem(v1s)
-    next2start, next2stop = nextitem(v2s)
+    nv1 = nextitem(v1s); next1start, next1stop = first(nv1), last(nv1)
+    nv2 = nextitem(v2s); next2start, next2stop = first(nv2), last(nv2)
 
     pos = min(next1start, next2start)
 
@@ -211,29 +213,35 @@ function coalesce(
             @assert next1start == next2start
             tree = CoalescentTreeTwoLineages(0, delta_t)
             push!(vc, ARGsegment(Segment(next1start, pos), tree))
-            next1start, next1stop = nextitem(v1s)
-            next2start, next2stop = nextitem(v2s)
+            nv1 = nextitem(v1s); next1start, next1stop = first(nv1), last(nv1)
+            nv2 = nextitem(v2s); next2start, next2stop = first(nv2), last(nv2)
+            # next1start, next1stop = nextitem(v1s)
+            # next2start, next2stop = nextitem(v2s)
             nextpos = min(next1start, next2start)
         elseif pos == next1stop && next2start > pos
             push!(v, Segment(next1start, pos))
-            next1start, next1stop = nextitem(v1s)
+            nv1 = nextitem(v1s); next1start, next1stop = first(nv1), last(nv1)
+            # next1start, next1stop = nextitem(v1s)
             nextpos = min(next1start, next2start)
         elseif pos == next1stop && next2stop > pos
             @assert next1start == next2start
             tree = CoalescentTreeTwoLineages(0, delta_t)
             push!(vc, ARGsegment(Segment(next1start, pos), tree))
-            next1start, next1stop = nextitem(v1s)
+            nv1 = nextitem(v1s); next1start, next1stop = first(nv1), last(nv1)
+            # next1start, next1stop = nextitem(v1s)
             next2start = pos + 1
             nextpos = min(next1start, next2stop)
         elseif pos == next2stop && next1start > pos
             push!(v, Segment(next2start, pos))
-            next2start, next2stop = nextitem(v2s)
+            nv2 = nextitem(v2s); next2start, next2stop = first(nv2), last(nv2)
+            # next2start, next2stop = nextitem(v2s)
             nextpos = min(next1start, next2start)
         elseif pos == next2stop && next1stop > pos
             @assert next1start == next2start
             tree = CoalescentTreeTwoLineages(0, delta_t)
             push!(vc, ARGsegment(Segment(next1start, pos), tree))
-            next2start, next2stop = nextitem(v2s)
+            nv2 = nextitem(v2s); next2start, next2stop = first(nv2), last(nv2)
+            # next2start, next2stop = nextitem(v2s)
             next1start = pos + 1
             nextpos = min(next1stop, next2start)
         end
@@ -241,7 +249,7 @@ function coalesce(
         pos = nextpos
     end
 
-    return v
+    return v::Vector{Segment{T}}
 end
 
 
@@ -411,7 +419,8 @@ function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome
                 N = demography.population_sizes[parentpool][max(t, tmin)]
                 @assert N > 0 "Population size must be > 0: p=$p t=$t parentpool=$parentpool"
 
-                vi1, vi2 = distribute(vi, recombination(genome))
+                bps = APop.sample(recombination(genome), 1.0, first(vi[1]), last(vi[end]))
+                vi1, vi2 = distribute(vi, bps)
                 
                 if !isempty(vi1)
                     k = rand(1:2*N)
