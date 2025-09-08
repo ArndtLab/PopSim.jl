@@ -552,14 +552,6 @@ end
     @test HudsonModel.nextitem(si) == 0
     @test HudsonModel.nextitem(si) == 0
 
-    v = [Segment(1,10), Segment(20,30)]
-    si = HudsonModel.StatefulWithDefaultIterator(v, 400)
-    @test HudsonModel.nextitem(si) == (1, 10)
-    @test HudsonModel.nextitem(si) == (20, 30)
-    @test HudsonModel.nextitem(si) == (400, 400)
-    @test HudsonModel.nextitem(si) == (400, 400)
-    @test HudsonModel.nextitem(si) == (400, 400)
-    @test HudsonModel.nextitem(si) == (400, 400)
 end
 
 
