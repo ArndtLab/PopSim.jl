@@ -368,11 +368,11 @@ function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome
     @assert demography.ploidy == 2 "not implemented"
 
     tmax = demography.end_time
-    tmin = demography.start_time
+    # tmin = demography.start_time
     L = length(genome)
-    migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
+    # migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
 
-    nextevent = length(demography.events)
+    # nextevent = length(demography.events)
 
     nallsamples = length(sample)
 
@@ -396,7 +396,21 @@ function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome
     end
     vc = nallsamples == 2 ? Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}() : Vector{ARGsegment{Int, HudsonARG{Int}}}()
 
+    vc = run_distribute_and_coalescent_loop(demography, genome, sample, v1s, v2s, vc)
+    SimulatedAncestry(model, demography, genome, sample, vc)
+end
 
+function run_distribute_and_coalescent_loop(demography::Demography, genome::Genome, sample::Sample, 
+    v1s::Vector{Vector{Vector{T}}}, v2s::Vector{Vector{Vector{T}}}, vc::Vector{S}) where {T, S}
+
+    tmax = demography.end_time
+    tmin = demography.start_time
+    L = length(genome)
+    migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
+
+    nextevent = length(demography.events)
+
+    nallsamples = length(sample)
 
     t = tmax
     while true
@@ -495,8 +509,7 @@ function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome
     end
     sort!(vc, by = first)
     @assert sum(length, vc) == L
-
-    SimulatedAncestry(model, demography, genome, sample, vc)
+    vc
 end
 
 
