@@ -8,35 +8,47 @@ using TestItemRunner
 
 
 @testitem "StationaryPopulation" begin
-    sd = StationaryPopulation(2, 100)
+    sd = StationaryPopulation(size = 100)
     @test sd.ploidy == 2
-    @test sd.size == 100
-    @test string(sd) == "StationaryPopulation(ploidy=2, size=100)"
-
-    @test_throws ArgumentError StationaryPopulation(3, 100)  # Invalid ploidy
-    @test_throws ArgumentError StationaryPopulation(0)    # Invalid size
-
-
+    @test size(sd) == 100
+    @test string(sd) == "StationaryPopulation(ploidy=2, population_size=100)"
+    
+    @test_throws ArgumentError StationaryPopulation(ploidy = 3)  # Invalid ploidy
+    @test_throws ArgumentError StationaryPopulation(size = 0)    # Invalid size
+    
+    
     @test APop.ploidy(sd) == 2
     @test size(sd) == 100
-
-
-    @test TNvector(sd, 4400) == [4400, 100]
+    
+    
+    sd = StationaryPopulation(size=100, genome_length=4400)
+    @test TNvector(sd) == [4400, 100]
 end
 
 @testitem "TN for varying pop" begin
     d = Demography()
-    add_population!(d, Population(id = "pop1", description = "Population 1", size = 100, growth_rate = 0.0, time_offset = 0))
-    set_end_time!(d, 5000)
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = 1000))
+    set_start_time!(d, -2000)
+    set_end_time!(d, 0)
 
-    @test TNvector(d, 2222) == [2222, 100]
 
-    add_event!(d, PopulationSizeEvent(4000, "pop1", 10))
-    add_event!(d, PopulationSizeEvent(4020, "pop1", 10000))
+    @test TNvector(d, 2222) == [2222, 1000]
+
+    add_event!(d, PopulationSizeEvent(-150, "pop1", 200))
+    add_event!(d, PopulationSizeEvent(-120, "pop1", 2000))
 
     println(APop.summary(d))
 
-    @test TNvector(d, 2222) == [2222, 100, 20, 10, 980, 10000]
+    tnv = TNvector(d, 2222)
+    @test tnv == [2222, 1000, 30, 200, 120, 2000]
+
+    vp = VaryingPopulation(; TNvector = tnv)
+    @test all(TNvector(vp) .≈ tnv)
+    @test vp.population_sizes == [2000, 200, 1000]
+    @test vp.times == [0.0, 120.0, 150.0]
+
+    vp = VaryingPopulation(; population_sizes = [2000, 200, 1000], times = [0.0, 120.0, 150.0], genome_length = 2222)
+    @test all(TNvector(vp) .≈ tnv)
 end
 
 @testitem "Demography" begin
@@ -213,7 +225,8 @@ end
 
 @testitem "IBS kwargs" begin
     tau = 100.0
-    mut = UniformRate(0.1)
+    mut_rate = 0.1
+    mut = UniformRate(mut_rate)
     tree = CoalescentTreeTwoLineages(1, tau)
 
     ibds = [ARGsegment(Segment(1, 1000), tree), ARGsegment(Segment(1001, 2000), tree)]
@@ -229,8 +242,76 @@ end
     @test length(ibs) < 1750
     @test sum(length, ibs) === 2000
 
+    ibs = collect(APop.IBSIterator(ibds, mut_rate, multiple_hits = :as_one))
+    @test length(ibs) in [1999,2000,2001]
+    @test sum(length, ibs) === 2000
+
+    ibs = collect(APop.IBSIterator(ibds, mut_rate, multiple_hits = :JCcorrect))
+    @test length(ibs) < 1750
+    @test sum(length, ibs) === 2000
+
+
 end
 
+@testitem "SMC" begin
+
+    for genome_length in [10, 1000, 1_000_000],
+            mutation_rate in [1.0e-3, 1.0e-9, 1.0e-10],
+            size in [10, 1000]
+
+        pop = StationaryPopulation(; genome_length, mutation_rate, size)
+        @test pop.genome_length == genome_length
+
+        ibds = collect(APop.SMCapprox.IBDIterator(pop))
+        @test length(ibds) > 0
+        @test genome_length == sum(length, ibds)
+
+        ibss = collect(APop.IBSIteratorTwoLineages(ibds, mutation_rate))
+        @test length(ibss) > 0
+        @test genome_length == sum(length, ibss)
+    end
+end
+
+@testitem "SMCprime StationaryPopulation" begin
+
+    for genome_length in [10, 1000, 1_000_000],
+            mutation_rate in [1.0e-3, 1.0e-9, 1.0e-10],
+            size in [10, 1000]
+
+        pop = StationaryPopulation(; genome_length, mutation_rate, size)
+        @test pop.genome_length == genome_length
+
+        ibds = collect(APop.SMCprimeapprox.IBDIterator(pop))
+        @test length(ibds) > 0
+        @test genome_length == sum(length, ibds)
+
+        ibss = collect(APop.IBSIteratorTwoLineages(ibds, mutation_rate))
+        @test length(ibss) > 0
+        @test genome_length == sum(length, ibss)
+    end
+end
+
+@testitem "SMCprime VaryingPopulation" begin
+
+    for genome_length in [10, 1000, 1_000_000],
+            mutation_rate in [1.0e-3, 1.0e-9, 1.0e-10],
+            size in [10, 1000]
+
+        population_sizes = [size, size ÷ 10, size]
+        times = [0.0, 1000.0, 2000.0]
+        pop = VaryingPopulation(; genome_length, mutation_rate, population_sizes, times)
+
+        @test pop.genome_length == genome_length
+
+        ibds = collect(APop.SMCprimeapprox.IBDIterator(pop))
+        @test length(ibds) > 0
+        @test genome_length == sum(length, ibds)
+
+        ibss = collect(APop.IBSIteratorTwoLineages(ibds, mutation_rate))
+        @test length(ibss) > 0
+        @test genome_length == sum(length, ibss)
+    end
+end
 
 
 @testitem "MemoryCrossoverStore" begin
@@ -354,7 +435,7 @@ end
     i = Individual(1, 2)
     @test i.alleles[1] == 1
     @test i.alleles[2] == 2
-    @test ploidy(i) == 2
+    @test APop.WrightFisherForwardModel.ploidy(i) == 2
     @test i[1] == 1
     @test i[2] == 2
     @test length(i) == 2

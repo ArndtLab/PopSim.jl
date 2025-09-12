@@ -12,9 +12,11 @@ mutable struct IBSIteratorTwoLineages{T,RD <: AbstractRateDistribution}
     lastibxstop::Int64
 end
 
-IBSIteratorTwoLineages(ibds, mutation; mut_kwargs...) = 
+IBSIteratorTwoLineages(ibds, mutation::AbstractRateDistribution; mut_kwargs...) = 
     IBSIteratorTwoLineages(Iterators.Stateful(ibds), mutation, mut_kwargs, Int[], 0, 0)
 
+IBSIteratorTwoLineages(ibds, mutation_rate::Number; mut_kwargs...) = 
+    IBSIteratorTwoLineages(Iterators.Stateful(ibds), UniformRate(mutation_rate); mut_kwargs...)
 
 Base.IteratorSize(::Type{IBSIteratorTwoLineages{T, RD}}) where {T, RD} = Base.SizeUnknown()
 Base.IteratorEltype(::Type{IBSIteratorTwoLineages{T}}) where {T} = Base.HasEltype()
