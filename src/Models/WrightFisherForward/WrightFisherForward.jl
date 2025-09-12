@@ -1,9 +1,17 @@
 
+module WrightFisherForwardModel
 
-abstract type AbstractEvolutionaryModel end
+using ..APop
 
 
-export WrightFisher, AbstractEvolutionaryModel, sim_ancestry, get_ARGsegments
+include("CrossOverStores.jl")
+using .CrossoverStores
+
+
+
+
+
+export WrightFisher, sim_ancestry, get_ARGsegments
 
 
 
@@ -49,9 +57,6 @@ randallele(ind::Individual) = rand(ind.alleles)
 
 
 
-using .CrossoverStores
-
-
 
 struct SimulatedAncestry{M <: WrightFisher}
     model::M
@@ -74,10 +79,10 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
 
 
     # setup
-    fix_population_sizes!(demography)
+    APop.fix_population_sizes!(demography)
     P = length(demography.populations)
 
-    migration_parent_pop_sampler = get_migration_parent_pop_sampler(demography)
+    migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
 
     cos = CrossoverStores.MemoryCrossoverStore(length(genome))
     t = demography.start_time
@@ -150,3 +155,7 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
     return SimulatedAncestry{typeof(model)}(model, demography, genome, cos, alives)
 end
 
+
+include("arg.jl")
+
+end

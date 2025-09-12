@@ -5,7 +5,7 @@ export Hudson, sim_ancestry
 using ..APop
 using Distributions
 
-struct Hudson end
+struct Hudson <: AbstractEvolutionaryModel end
 
 
 mutable struct StatefulWithDefaultIterator{T, D}
@@ -353,14 +353,14 @@ struct SimulatedAncestry{M <: Hudson, T}
     treedata::T
 end
 
-function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
+function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
     sample::Int)
     
     sample = Sample(demography, sample)
-    APop.sim_ancestry(model, demography, genome, sample)
+    sim_ancestry(model, demography, genome, sample)
 end
 
-function APop.sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
+function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
     sample::Sample)
     
     

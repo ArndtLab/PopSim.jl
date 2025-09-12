@@ -234,8 +234,8 @@ end
 
 
 @testitem "MemoryCrossoverStore" begin
-   
-    using APop.CrossoverStores
+
+    using APop.WrightFisherForwardModel.CrossoverStores
 
     c = MemoryCrossoverStore(100)
 
@@ -294,7 +294,7 @@ end
 
 @testitem  "VectorCrossoverStore" begin
 
-    using APop.CrossoverStores
+    using APop.WrightFisherForwardModel.CrossoverStores
 
     c = VectorCrossoverStore(100)
 
@@ -350,9 +350,10 @@ end
 
 
 @testitem "Individual" begin
+    using APop.WrightFisherForwardModel
     i = Individual(1, 2)
     @test i.alleles[1] == 1
-    @test i.alleles[2] == 2 
+    @test i.alleles[2] == 2
     @test ploidy(i) == 2
     @test i[1] == 1
     @test i[2] == 2
@@ -361,6 +362,7 @@ end
 end
 
 @testitem "WrightFisher - ARG etc" begin
+    using APop.WrightFisherForwardModel
     
     population_size = 100
     mutation_rate = 2e-8
@@ -377,7 +379,7 @@ end
     model = WrightFisher()
 
 
-    anc = sim_ancestry(model, d, g)
+    anc = APop.WrightFisherForwardModel.sim_ancestry(model, d, g)
     @test length(anc.alives) == length(d.populations)
 
 
@@ -436,6 +438,7 @@ end
 
 
 @testitem "WrightFisher - Events" begin
+    using APop.WrightFisherForwardModel
     
     population_size = 100
     mutation_rate = 2e-8
@@ -767,7 +770,7 @@ end
 
         model = Hudson()
 
-        anc = sim_ancestry(model, d, g, 2)
+        anc = APop.HudsonModel.sim_ancestry(model, d, g, 2)
         ibds = APop.HudsonModel.get_ARGsegments(anc) 
 
         @test sum(length, ibds) == genome_length

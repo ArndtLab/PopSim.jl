@@ -16,11 +16,6 @@ include("Demographies/Simple.jl")
 include("Demographies/General.jl")
 include("Demographies/Samples.jl")
 
-include("Models/WrightFisherForward/CrossOverStores.jl")
-include("Models/WrightFisherForward/WrightFisherForward.jl")
-include("Models/WrightFisherForward/arg.jl")
-
-include("Models/Hudson/Hudson.jl")
-
+include("Models/models.jl")
 
 end

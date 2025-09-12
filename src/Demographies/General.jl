@@ -71,7 +71,8 @@ PopulationMergeEvent(time::TimeType, source_population_id1::AbstractString,
     source_population_id2::AbstractString, target_population_id::AbstractString) =
     PopulationMergeEvent(time, [source_population_id1, source_population_id2], target_population_id)
 
-export Demography, add_population!, add_event!, set_start_time!, set_end_time!, set_migration!
+export Demography, add_population!, add_event!, set_start_time!, set_end_time!, set_migration!,
+    get_population_index_by_id, fix_population_sizes!, summary, TNvector, get_migration_parent_pop_sampler, test_population_sizes
 
 using OffsetArrays
 
