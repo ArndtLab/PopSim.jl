@@ -49,6 +49,13 @@ end
 
     vp = VaryingPopulation(; population_sizes = [2000, 200, 1000], times = [0.0, 120.0, 150.0], genome_length = 2222)
     @test all(TNvector(vp) .≈ tnv)
+
+    d = Demography()
+    APop.set_via_TNvector!(d, [2222, 1000, 30, 200, 120, 2000])
+    @test TNvector(d, 2222) == [2222, 1000, 30, 200, 120, 2000]
+    @test APop.get_population_index_by_id(d, "pop") == 1
+    @test d.end_time == 0
+    println(APop.summary(d))
 end
 
 @testitem "Demography" begin
