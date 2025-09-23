@@ -127,12 +127,12 @@ function set_end_time!(d::Demography, time::TimeType)
 end
 
 function set_via_TNvector!(d::Demography, tnv::Vector)
-    add_population!(d, Population(id="pop", size=tnv[2]))
+    add_population!(d, Population(id="pop", size=round(Int, tnv[2])))
     t = 0
     set_end_time!(d, t)
     for i in length(tnv):-2:3
-        t -= tnv[i-1]
-        add_event!(d, PopulationSizeEvent(t, "pop", tnv[i]))
+        t -= round(Int, tnv[i-1])
+        add_event!(d, PopulationSizeEvent(t, "pop", round(Int, tnv[i])))
         set_start_time!(d, t-1)
     end
     fix_population_sizes!(d)
