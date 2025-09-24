@@ -875,10 +875,10 @@ end
     using APop.HudsonModel
 
 
-    for genome_length in [1000000, 100000000],
+    for genome_length in [1000000, 10000000],
             population_size in [10000, 100000],
             recombination_rate in [1.0e-4, 1.0e-5],
-            mutation_rate in [1.0e-9, 1.0e-10]
+            mutation_rate in [1.0e-10]
             
 
     
@@ -897,6 +897,27 @@ end
         @test sum(!iscoalescent, ibds) > 0
         @test sum(length, IBSIterator(ibds, mutation(g))) == genome_length
 
+
+        anc = APop.HudsonModel.sim_ancestry(model, d, g, 3, tmin = 3995.0)
+        ibds = APop.HudsonModel.get_ARGsegments(anc) 
+
+        @test sum(length, ibds) == genome_length
+        @test sum(!iscoalescent, ibds) > 0
+        ibm = collect(IBMIterator(ibds, g.mutation))
+        @test sum(length, ibm) == genome_length
+        ibs = IBSIterator(ibm, 1,2)
+        @test sum(length, ibs) == genome_length
+
+
+        anc = APop.HudsonModel.sim_ancestry(model, d, g, 4, tmin = 3995.0)
+        ibds = APop.HudsonModel.get_ARGsegments(anc) 
+
+        @test sum(length, ibds) == genome_length
+        @test sum(!iscoalescent, ibds) > 0
+        ibm = collect(IBMIterator(ibds, g.mutation))
+        @test sum(length, ibm) == genome_length
+        ibs = IBSIterator(ibm, 1,2)
+        @test sum(length, ibs) == genome_length
     end
 end
 

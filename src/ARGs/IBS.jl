@@ -71,8 +71,8 @@ function sprinckle_mutations(s::ARGsegment{Int64, CoalescentTree{Vector{Branch},
     branches = tree.branches
     mutbranches = map(branches) do b
         if b.ancestor_k > 0
-            dt = b.time - branches[b.ancestor_k].time
-            @assert dt >= 0.0 "dt=$dt < 0.0 for branch $(b.id) with ancestor $(b.ancestor_k)"
+            dt = b.time > -Inf ? b.time - branches[b.ancestor_k].time : 0.0
+            @assert dt >= 0.0 "dt=$dt < 0.0 for branch $(b.id) with ancestor $(b.ancestor_k): time1: $(b.time) time2: $(branches[b.ancestor_k].time)"
             MutatedBranch(b.id, b.time, b.ancestor_k,
                 APop.sample(mut, dt, first(s), last(s); kwargs...)
             )

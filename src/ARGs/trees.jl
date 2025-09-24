@@ -47,7 +47,7 @@ start_time(ct::CoalescentTree{T, F}) where {T, F} = ct.start_time
 end_time(ct::CoalescentTree{T, F}) where {T, F} = ct.end_time
 timespan(ct::CoalescentTree{T, F}) where {T, F} = end_time(ct) - start_time(ct)
 root_id(ct::CoalescentTree{T, F}) where {T, F}   = ct.root_id
-iscoalescent(ct::CoalescentTree{T, F}) where {T, F} = root_id(ct) > 0
+iscoalescent(ct::CoalescentTree{T, F}) where {T, F} = 0 <= timespan(ct) < Inf
 
 Base.show(io::IO, ct::CoalescentTree{T, F}) where {T, F} = print(io, "CoalescentTree starting at $(ct.start_time) in $(ct.root_id) for $(length(ct.ids)) individuals")
 
