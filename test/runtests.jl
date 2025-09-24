@@ -875,9 +875,9 @@ end
     using APop.HudsonModel
 
 
-    for genome_length in [1000, 10000, 1000000],
+    for genome_length in [1000000, 100000000],
             population_size in [10000, 100000],
-            recombination_rate in [1.0e-8, 1.0e-9],
+            recombination_rate in [1.0e-4, 1.0e-5],
             mutation_rate in [1.0e-9, 1.0e-10]
             
 
@@ -890,7 +890,7 @@ end
 
         model = Hudson()
 
-        anc = APop.HudsonModel.sim_ancestry(model, d, g, 2, tmin = 3900.0)
+        anc = APop.HudsonModel.sim_ancestry(model, d, g, 2, tmin = 3995.0)
         ibds = APop.HudsonModel.get_ARGsegments(anc) 
 
         @test sum(length, ibds) == genome_length
