@@ -734,8 +734,8 @@ end
     using APop.HudsonModel
 
     n = 2
-    t = -1
-    tmax = 0
+    t = -1.0
+    tmax = 0.0
     vc = Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}()
     v1 = [Segment(1, 2), Segment(3, 4)]
     v2 = [Segment(5, 6), Segment(7, 8)]
@@ -788,8 +788,8 @@ end
 
 @testitem "coalesce loop" begin
     using APop.HudsonModel
-    t = 1
-    tmax = 2
+    t = 1.0
+    tmax = 2.0
     n = 2
     
     a1 = 100
@@ -817,7 +817,7 @@ end
     v2 = [Segment(1, 100)]
     vc = Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}()
     n = 2
-    tmax = 3
+    tmax = 3.0
 
     bps = [30,50,70,90]
     v11, v12 = HudsonModel.distribute(v1, bps)
@@ -825,11 +825,11 @@ end
     bps = [10,50,60]
     v21, v22 = HudsonModel.distribute(v2, bps)
 
-    t = 1
+    t = 1.0
     v3 = HudsonModel.coalesce(v11, v21, vc, t, tmax, n)
     v4 = HudsonModel.coalesce(v12, v22, vc, t, tmax, n)
 
-    t = 2
+    t = 2.0
     v5 = HudsonModel.coalesce(v3, v4, vc, t, tmax, n)
 
     sort!(vc, by = first)
@@ -862,6 +862,39 @@ end
         ibds = APop.HudsonModel.get_ARGsegments(anc) 
 
         @test sum(length, ibds) == genome_length
+        @test sum(length, IBSIterator(ibds, mutation(g))) == genome_length
+        @test sum(!iscoalescent, ibds) == 0
+
+    end
+end
+
+
+
+
+@testitem "Hudson StationaryPopulation with tmin" begin
+    using APop.HudsonModel
+
+
+    for genome_length in [1000, 10000, 1000000],
+            population_size in [10000, 100000],
+            recombination_rate in [1.0e-8, 1.0e-9],
+            mutation_rate in [1.0e-9, 1.0e-10]
+            
+
+    
+        d = Demography()
+        add_population!(d, Population(id = "pop1", size = population_size))
+        set_end_time!(d, 4000)
+    
+        g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  genome_length)
+
+        model = Hudson()
+
+        anc = APop.HudsonModel.sim_ancestry(model, d, g, 2, tmin = 3900.0)
+        ibds = APop.HudsonModel.get_ARGsegments(anc) 
+
+        @test sum(length, ibds) == genome_length
+        @test sum(!iscoalescent, ibds) > 0
         @test sum(length, IBSIterator(ibds, mutation(g))) == genome_length
 
     end

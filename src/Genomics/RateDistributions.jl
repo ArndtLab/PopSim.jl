@@ -27,6 +27,9 @@ function StatsBase.sample(u::UniformRate, dt::Float64, n1::Int, n2::Int;
     multiple_hits=:ignore)
     n = n2 - n1 + 1
     n == 0 && return Int64[]
+    if dt == Inf && multiple_hits != :JCcorrect
+        return collect(n1:n2)
+    end
     if multiple_hits == :ignore
         k = rand(Poisson(n * u.rate * dt))
         return sort!(rand(n1:n2, k))

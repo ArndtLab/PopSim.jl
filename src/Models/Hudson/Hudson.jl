@@ -171,10 +171,9 @@ function coalesce(
     v1::Vector{Segment{T}},
     v2::Vector{Segment{T}},
     vc::Vector{ARGsegment{T, CoalescentTreeTwoLineages}},
-    t::F, tmax::F,
+    t::Float64, tmax::Float64,
     n::Int
-)::Vector{Segment{T}} where {T<:Integer,F<:Real}
-    
+)::Vector{Segment{T}} where {T<:Integer}
     @assert n == 2
     delta_t = tmax - t
     length(v1) == 0 && return v2::Vector{Segment{T}}
@@ -254,12 +253,12 @@ end
 
 
 function coalesce(
-    v1::Vector{ARGsegment{T, HudsonARG{F}}} ,
-    v2::Vector{ARGsegment{T, HudsonARG{F}}} ,
-    vc::Vector{ARGsegment{T, HudsonARG{F}}},
-    t::F, tmax::F,
+    v1::Vector{ARGsegment{T, HudsonARG{Float64}}} ,
+    v2::Vector{ARGsegment{T, HudsonARG{Float64}}} ,
+    vc::Vector{ARGsegment{T, HudsonARG{Float64}}},
+    t::Float64, tmax::Float64,
     n::Int
-) where {T<:Integer ,F<:Real}
+) where {T<:Integer}
 
 
     length(v1) == 0 && return v2
@@ -296,7 +295,7 @@ function coalesce(
 
         if pos == next1stop && pos == next2stop
             @assert next1start == next2start
-            tree = HudsonARG{T}(0, t, next1data, next2data)
+            tree = HudsonARG{Float64}(0, t, next1data, next2data)
             if tree.nleaves == n
                 push!(vc, ARGsegment(Segment(next1start, pos), tree))
             else
@@ -311,7 +310,7 @@ function coalesce(
             nextpos = min(next1start, next2start)
         elseif pos == next1stop && next2stop > pos
             @assert next1start == next2start
-            tree = HudsonARG{T}(0, t, next1data, next2data)
+            tree = HudsonARG{Float64}(0, t, next1data, next2data)
             if tree.nleaves == n
                 push!(vc, ARGsegment(Segment(next1start, pos), tree))
             else
@@ -326,7 +325,7 @@ function coalesce(
             nextpos = min(next1start, next2start)
         elseif pos == next2stop && next1stop > pos
             @assert next1start == next2start
-            tree = HudsonARG{T}(0, t, next1data, next2data)
+            tree = HudsonARG{Float64}(0, t, next1data, next2data)
             if tree.nleaves == n
                 push!(vc, ARGsegment(Segment(next1start, pos), tree))
             else
@@ -354,21 +353,20 @@ struct SimulatedAncestry{M <: Hudson, T}
 end
 
 function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
-    sample::Int)
+    sample::Int; kwargs...)
     
     sample = Sample(demography, sample)
-    sim_ancestry(model, demography, genome, sample)
+    sim_ancestry(model, demography, genome, sample; kwargs...)
 end
 
 function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
-    sample::Sample)
+    sample::Sample; tmin::Float64 = -Inf)
     
     
-    # @assert length(demography.populations) == 1 "not implemented"
     @assert demography.ploidy == 2 "not implemented"
 
     tmax = demography.end_time
-    tmin = demography.start_time
+    tstart = demography.start_time
     L = length(genome)
     migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
 
@@ -387,14 +385,14 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
         else
             ks = findall(id -> id == pop.id, sample.ids)
             map(ks) do k
-                [ARGsegment(Segment{Int}(1, L), HudsonARG{Int}(k, tmax))]
+                [ARGsegment(Segment{Int}(1, L), HudsonARG{Float64}(k, float(tmax)))]
             end
         end
     end
     v2s = map(v1s) do v1
         similar(v1, 0)
     end
-    vc = nallsamples == 2 ? Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}() : Vector{ARGsegment{Int, HudsonARG{Int}}}()
+    vc = nallsamples == 2 ? Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}() : Vector{ARGsegment{Int, HudsonARG{Float64}}}()
 
 
 
@@ -407,7 +405,7 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
         # println()
 
         # clean 
-        tprev = max(t - 1, tmin)
+        tprev = max(t - 1, tstart)
         foreach(empty!, v2s)
 
         # reproduction
@@ -416,7 +414,7 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
             for vi in v1s[p]
                 # choose parentpool 
                 parentpool = migration_parent_pop_sampler[p]()
-                N = demography.population_sizes[parentpool][max(t, tmin)]
+                N = demography.population_sizes[parentpool][max(t, tstart)]
                 @assert N > 0 "Population size must be > 0: p=$p t=$t parentpool=$parentpool"
 
                 bps = APop.sample(recombination(genome), 1.0, first(vi[1]), last(vi[end]))
@@ -427,7 +425,7 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
                     if k > length(v2s[parentpool])
                         push!(v2s[parentpool], vi1)
                     else
-                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi1, vc, t - 1, tmax, nallsamples)
+                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi1, vc, float(t - 1), float(tmax), nallsamples)
                     end
                 end
                 
@@ -436,7 +434,7 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
                     if k > length(v2s[parentpool])
                         push!(v2s[parentpool], vi2)
                     else
-                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi2, vc, t - 1, tmax, nallsamples)
+                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi2, vc, float(t - 1), float(tmax), nallsamples)
                     end
                 end
             end
@@ -447,6 +445,25 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
         end
         
         if all(isempty, v1s) # every linage coalesced
+            break
+        end
+
+        if t <= tmin # force all linages to coalesce in one parent
+
+            v3 = similar(v1s[1], 0)
+            for p in 1:length(demography.populations)
+                for vi in v1s[p]
+                    if !isempty(vi)
+                        if isempty(v3)
+                            push!(v3, vi)
+                        else
+                            v3[1] = coalesce(v3[1], vi, vc, -Inf, float(tmax), nallsamples)
+                        end
+                    end
+                end
+            end
+            @assert !isempty(v3)
+
             break
         end
 
@@ -535,7 +552,7 @@ function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, HudsonA
         first_id = 2 * n - 1 
         idc = first_id
         first_time = vci.data.time
-        last_time = sa.demography.end_time
+        last_time = float(sa.demography.end_time)
         branches = map(i -> Branch(-1, 0.0, -1), 1:idc)
 
         nextinternal = idc - 1

@@ -15,7 +15,7 @@ end
 
 
 timespan(tree::CoalescentTreeTwoLineages) = tree.timespan
-iscoalescent(tree::CoalescentTreeTwoLineages) = tree.timespan >= 0.0
+iscoalescent(tree::CoalescentTreeTwoLineages) = 0 <= tree.timespan < Inf
 
 Base.show(io::IO, ct::CoalescentTreeTwoLineages) = print(io, "CoalescentTreeTwoLineages starting in $(ct.root_id) with timespan $(ct.timespan)")
 
