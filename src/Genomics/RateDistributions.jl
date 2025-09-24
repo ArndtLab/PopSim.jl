@@ -24,7 +24,7 @@ average_rate(r::UniformRate) = r.rate
 
 
 function StatsBase.sample(u::UniformRate, dt::Float64, n1::Int, n2::Int;
-    multiple_hits=:ignore)
+    multiple_hits=:ignore)::Vector{Int}
     n = n2 - n1 + 1
     n == 0 && return Int64[]
     if dt == Inf && multiple_hits != :JCcorrect
