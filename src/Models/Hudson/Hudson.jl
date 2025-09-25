@@ -406,15 +406,20 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
 
         # clean 
         tprev = max(t - 1, tstart)
+        tparent = max(t, tstart)
         foreach(empty!, v2s)
 
         # reproduction
-        for p in 1:length(demography.populations)
+        # for p in 1:length(demography.populations)
+        for (p, v1s_p, migration_parent_pop_sampler_p)  in zip(1:length(v1s), v1s, migration_parent_pop_sampler)
             
-            for vi in v1s[p]
+            for vi in v1s_p
                 # choose parentpool 
-                parentpool = migration_parent_pop_sampler[p]()
-                N = demography.population_sizes[parentpool][max(t, tstart)]
+                parentpool = migration_parent_pop_sampler_p()
+                # parentpool = p
+                v2s_parentpool = v2s[parentpool]
+                
+                N = @inbounds demography.population_sizes[parentpool][tparent]::Int
                 @assert N > 0 "Population size must be > 0: p=$p t=$t parentpool=$parentpool"
 
                 bps = APop.sample(recombination(genome), 1.0, first(vi[1]), last(vi[end]))
@@ -422,19 +427,19 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
                 
                 if !isempty(vi1)
                     k = rand(1:2*N)
-                    if k > length(v2s[parentpool])
-                        push!(v2s[parentpool], vi1)
+                    if k > length(v2s_parentpool)
+                        push!(v2s_parentpool, vi1)
                     else
-                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi1, vc, float(t - 1), float(tmax), nallsamples)
+                        v2s_parentpool[k] = coalesce(v2s_parentpool[k], vi1, vc, float(t - 1), float(tmax), nallsamples)
                     end
                 end
                 
                 if !isempty(vi2)
                     k = rand(1:2*N)
-                    if k > length(v2s[parentpool])
-                        push!(v2s[parentpool], vi2)
+                    if k > length(v2s_parentpool)
+                        push!(v2s_parentpool, vi2)
                     else
-                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi2, vc, float(t - 1), float(tmax), nallsamples)
+                        v2s_parentpool[k] = coalesce(v2s_parentpool[k], vi2, vc, float(t - 1), float(tmax), nallsamples)
                     end
                 end
             end
