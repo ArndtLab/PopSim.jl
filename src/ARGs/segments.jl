@@ -15,9 +15,9 @@ struct Segment{T}
     last::T
 end
 
-Base.first(s::Segment) = s.first
-Base.last(s::Segment) = s.last
-Base.length(s::Segment) = s.last - s.first + 1
+Base.first(s::Segment{T}) where {T}  = s.first
+Base.last(s::Segment{T}) where {T} = s.last
+Base.length(s::Segment{T}) where {T} = s.last - s.first + 1
 
 Base.show(io::IO, s::Segment) = print(io, "Segment(first=$(s.first), last=$(s.last))")
 

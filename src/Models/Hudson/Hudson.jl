@@ -381,21 +381,22 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
         Nend = pop_sizes[tmax]
         nsample = length(filter(id -> id == pop.id, pop_sample.ids))
         nsample > Nend && throw(ArgumentError("Number of samples ($nsample) cannot exceed population size at end time ($Nend) for population '$(pop.id)'."))
-        if nallsamples == 2
-            map(1:nsample) do _
-                one_indv = [Segment{Int}(1, L)]
-            end
-        else
+        # if nallsamples == 2
+        #     map(1:nsample) do _
+        #         one_indv = [Segment{Int}(1, L)]
+        #     end
+        # else
             ks = findall(id -> id == pop.id, pop_sample.ids)
             map(ks) do k
                 [ARGsegment(Segment{Int}(1, L), HudsonARG{Float64}(k, float(tmax)))]
             end
-        end
+        # end
     end
     v2s = map(v1s) do v1
         similar(v1, 0)
     end
-    vc = nallsamples == 2 ? Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}() : Vector{ARGsegment{Int, HudsonARG{Float64}}}()
+    # vc = nallsamples == 2 ? Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}() : Vector{ARGsegment{Int, HudsonARG{Float64}}}()
+    vc = Vector{ARGsegment{Int, HudsonARG{Float64}}}()
 
 
 
@@ -548,9 +549,9 @@ function createbranches!(arg, branches, nextinternal, idc, parent_idc, last_time
     end
 end
 
-function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}}) where {M<:Hudson}
-    return sa.treedata
-end
+# function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}}) where {M<:Hudson}
+#     return sa.treedata
+# end
 
 function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, HudsonARG{F}}}}) where {M<:Hudson, F}
     n = length(sa.sample)

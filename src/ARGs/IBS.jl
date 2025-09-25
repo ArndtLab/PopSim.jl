@@ -1,5 +1,5 @@
 
-export IBSIterator, IBMIterator
+export IBSIterator, IBMIterator, IBD2Iterator
 
 
 
@@ -190,4 +190,44 @@ _IBSIterator(collection, ::Base.HasEltype, args...; kwargs...) =  _IBSIterator(c
 
 _IBSIterator(collection, ::Type{ARGsegment{Int64, CoalescentTreeTwoLineages}}, args...; kwargs...) = IBSIteratorTwoLineages(collection, args...; kwargs...)
 _IBSIterator(collection, ::Type{ARGsegment{Int64, CoalescentTree{Vector{MutatedBranch}, F}}}, args...; kwargs...) where {F} = IBSIteratorMutated(collection, args...; kwargs...)
+
+
+
+
+
+function find_last_common_ancestor(ct::CoalescentTree{Vector{Branch},F}, id_ks::Vector{Int64}) where {F}
+    ks = sort(id_ks)
+    while true
+        length(ks) == 1 && break
+
+        if (length(ks) >= 2) && (ks[1] == ks[2])
+            ks = ks[2:end]
+            continue 
+        end
+        
+        # move along branch to ancestor
+        ancestor_k = ct.branches[ks[1]].ancestor_k
+
+        if ancestor_k > 0
+            ks[1] = ancestor_k
+        else
+            ks = ks[2:end]
+        end
+        sort!(ks)
+    end
+    ks[1]
+end
+
+
+
+
+function IBD2Iterator(iter, ids::Vector{Int64})
+    Iterators.map(iter) do a
+        s = data(a)
+        lca = find_last_common_ancestor(s, ids)
+        ARGsegment{Int64, CoalescentTreeTwoLineages}(a.segment, CoalescentTreeTwoLineages(s.root_id, end_time(s) - s.branches[lca].time))
+    end
+end
+
+
 
