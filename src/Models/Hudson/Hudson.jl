@@ -359,8 +359,8 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
     sim_ancestry(model, demography, genome, sample; kwargs...)
 end
 
-function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
-    sample::Sample; tmin::Float64 = -Inf)
+function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M},
+    sample::Sample; tmin::Float64 = -Inf) where {R <: AbstractRateDistribution, M <: AbstractRateDistribution}
     
     
     @assert demography.ploidy == 2 "not implemented"
