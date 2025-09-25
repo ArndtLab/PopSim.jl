@@ -371,29 +371,21 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
     tmax = demography.end_time
     tstart = demography.start_time
     L = length(genome)
-    # migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
 
     nextevent = length(demography.events)
 
     nallsamples = length(pop_sample)
 
-    v1s = map(demography.populations, demography.population_sizes) do pop, pop_sizes
-        # Nend = pop_snd && throw(ArgumentError("Number of samples ($nsample) cannot exceed population size at end time ($Nend) for population '$(pop.id)'."))
-        # if nallsamples == 2
-        #     map(1:nsample) do _
-        #         one_indv = [Segment{Int}(1, L)]
-        #     end
-        # else
-            ks = findall(id -> id == pop.id, pop_sample.ids)
-            map(ks) do k
-                [ARGsegment(Segment{Int}(1, L), HudsonARG{Float64}(k, float(tmax)))]
-            end
-        # end
+    v1s = map(enumerate(demography.populations)) do (i, pop)
+        ks = findall(id -> id == pop.id, pop_sample.ids)
+        @assert length(ks) <= demography.population_sizes[i, tmax] "Sample size larger than population size"
+        map(ks) do k
+            [ARGsegment(Segment{Int}(1, L), HudsonARG{Float64}(k, float(tmax)))]
+        end
     end
     v2s = map(v1s) do v1
         similar(v1, 0)
     end
-    # vc = nallsamples == 2 ? Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}() : Vector{ARGsegment{Int, HudsonARG{Float64}}}()
     vc = Vector{ARGsegment{Int, HudsonARG{Float64}}}()
 
 
@@ -418,10 +410,8 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
             for vi in v1s_p
                 # choose parentpool
                 parentpool = APop.get_rand_parentpool(demography, p)
-                # parentpool = p
-                v2s_parentpool = v2s[parentpool]
                 
-                N = @inbounds demography.population_sizes[parentpool][tparent]::Int
+                N = demography.population_sizes[parentpool, tparent]
                 @assert N > 0 "Population size must be > 0: p=$p t=$t parentpool=$parentpool"
 
                 bps = sample(recombination(genome), 1.0, first(vi[1]), last(vi[end]))
@@ -429,19 +419,19 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
                 
                 if !isempty(vi1)
                     k = rand(1:2*N)
-                    if k > length(v2s_parentpool)
-                        push!(v2s_parentpool, vi1)
+                    if k > length(v2s[parentpool])
+                        push!(v2s[parentpool], vi1)
                     else
-                        v2s_parentpool[k] = coalesce(v2s_parentpool[k], vi1, vc, float(t - 1), float(tmax), nallsamples)
+                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi1, vc, float(t - 1), float(tmax), nallsamples)
                     end
                 end
                 
                 if !isempty(vi2)
                     k = rand(1:2*N)
-                    if k > length(v2s_parentpool)
-                        push!(v2s_parentpool, vi2)
+                    if k > length(v2s[parentpool])
+                        push!(v2s[parentpool], vi2)
                     else
-                        v2s_parentpool[k] = coalesce(v2s_parentpool[k], vi2, vc, float(t - 1), float(tmax), nallsamples)
+                        v2s[parentpool][k] = coalesce(v2s[parentpool][k], vi2, vc, float(t - 1), float(tmax), nallsamples)
                     end
                 end
             end
@@ -499,7 +489,7 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
                 end
                 @assert all(i -> isempty(v1s[i]), sis)
                 props = map(sis) do si
-                    demography.population_sizes[si][tprev]
+                    demography.population_sizes[si, tprev]
                 end
                 @assert sum(props) > 0
                 distprop = Categorical(props ./ sum(props))

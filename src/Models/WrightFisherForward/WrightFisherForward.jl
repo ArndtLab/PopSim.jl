@@ -87,8 +87,8 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
     t = demography.start_time
     
     # initialize individuals
-    alives = map(demography.population_sizes) do sizes
-        N = sizes[t]
+    alives = map(enumerate(demography.populations)) do (i, pop)
+        N = demography.population_sizes[i, t]
         alive = map(1:N) do i
             ids = map(1:demography.ploidy) do j
                 CrossoverStores.newid!(cos, float(t))
@@ -131,7 +131,7 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
 
         # reproduction
         nalives = map(enumerate(alives)) do (i, alive)
-            targetN = demography.population_sizes[i][t]
+            targetN = demography.population_sizes[i, t]
             alive1 = map(1:targetN) do k
                 parentpool = alives[APop.get_rand_parentpool(demography, i)]
                 a1, a2 = sample(parentpool, 2, replace=model.allow_selfing)

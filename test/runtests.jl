@@ -67,14 +67,14 @@ end
 
     add_population!(d, Population(id = "pop1", description = "Population 1", size = 100, growth_rate = 0.0, time_offset = 0))
     set_end_time!(d, 1000)
-    @test length(d.population_sizes) == 1
-    @test d.population_sizes[1][0] == 100
-    @test d.population_sizes[1][1000] == 100
+    # @test length(d.population_sizes) == 1
+    @test d.population_sizes[1, 0] == 100
+    @test d.population_sizes[1, 1000] == 100
 
     add_event!(d, PopulationSizeEvent(500, "pop1", 150))
-    @test d.population_sizes[1][500-1] == 100
-    @test d.population_sizes[1][500] == 150
-    @test d.population_sizes[1][1000] == 150
+    @test d.population_sizes[1, 500-1] == 100
+    @test d.population_sizes[1, 500] == 150
+    @test d.population_sizes[1, 1000] == 150
 
     add_population!(d, Population(id = "pop2", description = "Population 2", size = 400, growth_rate = 0.0, time_offset = 0))
     set_migration!(d, "pop1", "pop2", 0.1)

@@ -72,7 +72,7 @@ PopulationMergeEvent(time::TimeType, source_population_id1::AbstractString,
     PopulationMergeEvent(time, [source_population_id1, source_population_id2], target_population_id)
 
 export Demography, add_population!, add_event!, set_start_time!, set_end_time!, set_migration!,
-    get_population_index_by_id, fix_population_sizes!, summary, TNvector, get_migration_parent_pop_sampler, test_population_sizes
+    get_population_index_by_id, fix_population_sizes!, summary, TNvector
 
 using OffsetArrays
 
@@ -84,13 +84,14 @@ mutable struct Demography
     end_time::TimeType
     ploidy::Int64
     
-    population_sizes::Vector{OffsetVector{Int64}}
+    # internal data structures
+    population_sizes::OffsetArray{Int64, 2, Array{Int64, 2}}
     migration::Array{Float64, 2}
 end
 
 
 
-Demography() = Demography(Vector{Population}(), Vector{AbstractAncestryEvent}(), 0.0, 0.0, 2, Vector{OffsetVector{Int64}}(), zeros(Float64, 0, 0))
+Demography() = Demography(Vector{Population}(), Vector{AbstractAncestryEvent}(), 0.0, 0.0, 2, OffsetArray{Int64, 2}(undef, 0, 0), zeros(Float64, 0, 0))
 
 
 function add_population!(d::Demography, population::Population)
@@ -172,12 +173,15 @@ function fix_population_sizes!(d::Demography)
     T = d.end_time - d.start_time + 1
     T <= 0 && return d
 
-    d.population_sizes = map(p -> OffsetVector(fill(p.size, T), d.start_time : d.end_time), d.populations)
+    a = map(Iterators.product(d.populations, 1:T)) do (p, t)
+        p.size
+    end
+    d.population_sizes = OffsetArray(a, OffsetArrays.Origin(1, d.start_time ))
     @assert all(p -> p.growth_rate == 0.0, d.populations)
 
     for t in d.start_time+1 : d.end_time
         for i in 1:length(d.populations)
-            d.population_sizes[i][t] = d.population_sizes[i][t-1]
+            d.population_sizes[i, t] = d.population_sizes[i, t-1]
         end
 
         while nextevent <= length(d.events) && d.events[nextevent].time <= t
@@ -185,23 +189,23 @@ function fix_population_sizes!(d::Demography)
             nextevent += 1
             if e isa PopulationSizeEvent
                 i = get_population_index_by_id(d, e.population_id)
-                d.population_sizes[i][t] = e.value
+                d.population_sizes[i, t] = e.value
             elseif e isa PopulationSplitEvent
                 si = get_population_index_by_id(d, e.source_population_id)
-                d.population_sizes[si][t : end] .= 0
+                d.population_sizes[si, t : end] .= 0
                 for target_population_id in e.target_population_ids
                     ti = get_population_index_by_id(d, target_population_id)
-                    d.population_sizes[ti][begin : t-1] .= 0
-                    @assert d.population_sizes[ti][t] > 0
+                    d.population_sizes[ti, begin : t-1] .= 0
+                    @assert d.population_sizes[ti, t] > 0
                 end
             elseif e isa PopulationMergeEvent
                 for source_population_id in e.source_population_ids
                     si = get_population_index_by_id(d, source_population_id)
-                    d.population_sizes[si][t : end] .= 0
+                    d.population_sizes[si, t : end] .= 0
                 end
                 ti = get_population_index_by_id(d, e.target_population_id)
-                d.population_sizes[ti][begin : t-1] .= 0
-                @assert d.population_sizes[ti][t] > 0
+                d.population_sizes[ti, begin : t-1] .= 0
+                @assert d.population_sizes[ti, t] > 0
             else
                 throw(ArgumentError("Unknown event type: $(typeof(e))"))
             end
@@ -216,7 +220,7 @@ function summary(d::Demography)
            "$(length(d.events)) events, start time $(d.start_time), end time $(d.end_time)")
 
     ts = map(enumerate(d.start_time : d.end_time)) do (i, t)
-        p = map(p -> lpad(string(d.population_sizes[p][t]), 7), 1:length(d.populations))
+        p = map(p -> lpad(string(d.population_sizes[p, t]), 7), 1:length(d.populations))
         (i, t, join(p, " "))
     end
     ks = map(t->t[1], unique(i -> i[3], ts))
@@ -244,7 +248,7 @@ function TNvector(d::Demography, sequence_length::Int)
     if length(d.populations) != 1
         throw(ArgumentError("TNvector is only defined for demographies with a single population"))
     end
-    sizes = d.population_sizes[1]
+    sizes = d.population_sizes[1, :]
     t = tlast = d.start_time
     Nlast = sizes[t]
     TN = [sequence_length, Nlast]
@@ -274,18 +278,3 @@ function get_rand_parentpool(demography::Demography, pop_id::Int64)
         return rand(dist)
     end
 end
-
-function test_population_sizes(d::Demography)
-    for ns in d.population_sizes
-        length(ns) == 0 && continue
-        i1 = findfirst(!=(0), ns)
-        i2 = findlast(!=(0), ns)
-        if isnothing(i1)
-            @warn "Population sizes are all zero."
-        end
-        if !all(ns[i1:i2] .> 0)
-            @warn "Population sizes reach zero."
-        end
-    end
-end
-
