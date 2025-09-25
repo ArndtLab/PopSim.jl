@@ -264,20 +264,16 @@ function TNvector(d::Demography, sequence_length::Int)
     return TN
 end
 
-function get_migration_parent_pop_sampler(demography::Demography)
-    P = length(demography.populations)
-    migration_parent_pop_sampler = map(1:P) do to_id
-        if demography.migration[to_id, to_id] == 1.0
-            () -> to_id
-        else
-            dist = Categorical([demography.migration[to_id, from_id] for from_id in 1:P])
-            () -> rand(dist)
-        end
+
+
+function get_rand_parentpool(demography::Demography, pop_id::Int64)
+    if demography.migration[pop_id, pop_id] == 1.0
+        return pop_id
+    else
+        dist = Categorical([demography.migration[pop_id, from_id] for from_id in 1:length(demography.populations)])
+        return rand(dist)
     end
-    return migration_parent_pop_sampler
 end
-
-
 
 function test_population_sizes(d::Demography)
     for ns in d.population_sizes

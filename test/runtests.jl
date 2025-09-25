@@ -601,31 +601,29 @@ end
     set_start_time!(d, 0)
     set_end_time!(d, 12)
     
-    s = APop.get_migration_parent_pop_sampler(d)
-    @test length(s) == length(d.populations)
 
     i = 1
-    pp = map(k -> s[i](), 1:10000) 
+    pp = map(k -> APop.get_rand_parentpool(d,i), 1:10000) 
     @test all(==(1), pp)
 
     i = 2
-    pp = map(k -> s[i](), 1:10000) 
+    pp = map(k -> APop.get_rand_parentpool(d, i), 1:10000) 
     @test all(==(2), pp)
 
     i = 3
-    pp = map(k -> s[i](), 1:10000) 
+    pp = map(k -> APop.get_rand_parentpool(d, i), 1:10000) 
     @test all(in([2,3]), pp)
     @test length(pp) * 0.15 > sum(==(2), pp) > 0.05 * length(pp)
     @test sum(==(3), pp) > 0.8 * length(pp)
 
     i = 4
-    pp = map(k -> s[i](), 1:10000) 
+    pp = map(k -> APop.get_rand_parentpool(d, i), 1:10000) 
     @test all(in([4,5]), pp)
     @test length(pp) * 0.6 > sum(==(4), pp) > 0.4 * length(pp)
     @test length(pp) * 0.6 > sum(==(5), pp) > 0.4 * length(pp)
 
     i = 5
-    pp = map(k -> s[i](), 1:10000) 
+    pp = map(k -> APop.get_rand_parentpool(d, i), 1:10000) 
     @test all(in([4,5]), pp)
     @test length(pp) * 0.6 > sum(==(4), pp) > 0.4 * length(pp)
     @test length(pp) * 0.6 > sum(==(5), pp) > 0.4 * length(pp)

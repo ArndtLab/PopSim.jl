@@ -81,9 +81,7 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
 
     # setup
     APop.fix_population_sizes!(demography)
-    P = length(demography.populations)
 
-    migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
 
     cos = CrossoverStores.MemoryCrossoverStore(length(genome))
     t = demography.start_time
@@ -135,7 +133,7 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
         nalives = map(enumerate(alives)) do (i, alive)
             targetN = demography.population_sizes[i][t]
             alive1 = map(1:targetN) do k
-                parentpool = alives[migration_parent_pop_sampler[i]()]
+                parentpool = alives[APop.get_rand_parentpool(demography, i)]
                 a1, a2 = sample(parentpool, 2, replace=model.allow_selfing)
                 
                 a11, a12 = randomswap(a1[1], a1[2])

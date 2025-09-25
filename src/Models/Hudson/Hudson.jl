@@ -371,16 +371,14 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
     tmax = demography.end_time
     tstart = demography.start_time
     L = length(genome)
-    migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
+    # migration_parent_pop_sampler = APop.get_migration_parent_pop_sampler(demography)
 
     nextevent = length(demography.events)
 
     nallsamples = length(pop_sample)
 
     v1s = map(demography.populations, demography.population_sizes) do pop, pop_sizes
-        Nend = pop_sizes[tmax]
-        nsample = length(filter(id -> id == pop.id, pop_sample.ids))
-        nsample > Nend && throw(ArgumentError("Number of samples ($nsample) cannot exceed population size at end time ($Nend) for population '$(pop.id)'."))
+        # Nend = pop_snd && throw(ArgumentError("Number of samples ($nsample) cannot exceed population size at end time ($Nend) for population '$(pop.id)'."))
         # if nallsamples == 2
         #     map(1:nsample) do _
         #         one_indv = [Segment{Int}(1, L)]
@@ -415,11 +413,11 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
 
         # reproduction
         # for p in 1:length(demography.populations)
-        for (p, v1s_p, migration_parent_pop_sampler_p)  in zip(1:length(v1s), v1s, migration_parent_pop_sampler)
+        for (p, v1s_p)  in zip(1:length(v1s), v1s)
             
             for vi in v1s_p
-                # choose parentpool 
-                parentpool = migration_parent_pop_sampler_p()
+                # choose parentpool
+                parentpool = APop.get_rand_parentpool(demography, p)
                 # parentpool = p
                 v2s_parentpool = v2s[parentpool]
                 
