@@ -18,9 +18,9 @@ end
 
 
 
-Base.length(g::Genome) = g.length
-recombination(g::Genome) = g.recombination
-mutation(g::Genome) = g.mutation   
+Base.length(g::Genome)::Int = g.length
+recombination(g::Genome{R,M}) where {R,M} = g.recombination
+mutation(g::Genome{R,M}) where {R,M} = g.mutation
 
 Base.show(io::IO, g::Genome) = print(io, "Genome(recombination=$(g.recombination), mutation=$(g.mutation), length=$(g.length))")
 

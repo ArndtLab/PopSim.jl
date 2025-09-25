@@ -1,6 +1,6 @@
 
 export AbstractRateDistribution, UniformRate, NonUniformRate,
-    average_rate
+    average_rate, sample
 
 using StatsBase, Distributions, Random
 

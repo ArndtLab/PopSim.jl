@@ -1,9 +1,12 @@
 module HudsonModel
 
-export Hudson, sim_ancestry
+export Hudson, sim_ancestry, get_ARGsegments
 
 using ..APop
 using Distributions
+
+import ..APop: sim_ancestry
+
 
 struct Hudson <: AbstractEvolutionaryModel end
 
@@ -353,14 +356,14 @@ struct SimulatedAncestry{M <: Hudson, T}
 end
 
 function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
-    sample::Int; kwargs...)
+    sample_size::Int; kwargs...)
     
-    sample = Sample(demography, sample)
-    sim_ancestry(model, demography, genome, sample; kwargs...)
+    pop_sample = Sample(demography, sample_size)
+    sim_ancestry(model, demography, genome, pop_sample; kwargs...)
 end
 
 function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M},
-    sample::Sample; tmin::Float64 = -Inf) where {R <: AbstractRateDistribution, M <: AbstractRateDistribution}
+    pop_sample::Sample; tmin::Float64 = -Inf) where {R <: AbstractRateDistribution, M <: AbstractRateDistribution}
     
     
     @assert demography.ploidy == 2 "not implemented"
@@ -372,18 +375,18 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
 
     nextevent = length(demography.events)
 
-    nallsamples = length(sample)
+    nallsamples = length(pop_sample)
 
     v1s = map(demography.populations, demography.population_sizes) do pop, pop_sizes
         Nend = pop_sizes[tmax]
-        nsample = length(filter(id -> id == pop.id, sample.ids))
+        nsample = length(filter(id -> id == pop.id, pop_sample.ids))
         nsample > Nend && throw(ArgumentError("Number of samples ($nsample) cannot exceed population size at end time ($Nend) for population '$(pop.id)'."))
         if nallsamples == 2
             map(1:nsample) do _
                 one_indv = [Segment{Int}(1, L)]
             end
         else
-            ks = findall(id -> id == pop.id, sample.ids)
+            ks = findall(id -> id == pop.id, pop_sample.ids)
             map(ks) do k
                 [ARGsegment(Segment{Int}(1, L), HudsonARG{Float64}(k, float(tmax)))]
             end
@@ -422,7 +425,7 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
                 N = @inbounds demography.population_sizes[parentpool][tparent]::Int
                 @assert N > 0 "Population size must be > 0: p=$p t=$t parentpool=$parentpool"
 
-                bps = APop.sample(recombination(genome), 1.0, first(vi[1]), last(vi[end]))
+                bps = sample(recombination(genome), 1.0, first(vi[1]), last(vi[end]))
                 vi1, vi2 = distribute(vi, bps)
                 
                 if !isempty(vi1)
@@ -518,7 +521,7 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
     sort!(vc, by = first)
     @assert sum(length, vc) == L
 
-    SimulatedAncestry(model, demography, genome, sample, vc)
+    SimulatedAncestry(model, demography, genome, pop_sample, vc)
 end
 
 

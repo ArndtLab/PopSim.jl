@@ -1,8 +1,10 @@
 
 module WrightFisherForwardModel
 
-using ..APop
+export WrightFisher, sim_ancestry, get_ARGsegments
 
+using ..APop
+import ..APop: sim_ancestry
 
 include("CrossOverStores.jl")
 using .CrossoverStores
@@ -11,7 +13,6 @@ using .CrossoverStores
 
 
 
-export WrightFisher, sim_ancestry, get_ARGsegments
 
 
 

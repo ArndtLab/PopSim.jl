@@ -858,7 +858,7 @@ end
 
         model = Hudson()
 
-        anc = APop.HudsonModel.sim_ancestry(model, d, g, 2)
+        anc = sim_ancestry(model, d, g, 2)
         ibds = APop.HudsonModel.get_ARGsegments(anc) 
 
         @test sum(length, ibds) == genome_length
