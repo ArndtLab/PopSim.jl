@@ -372,23 +372,56 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
     tstart = demography.start_time
     L = length(genome)
 
-    nextevent = length(demography.events)
 
     nallsamples = length(pop_sample)
 
-    v1s = map(enumerate(demography.populations)) do (i, pop)
-        ks = findall(id -> id == pop.id, pop_sample.ids)
-        @assert length(ks) <= demography.population_sizes[i, tmax] "Sample size larger than population size"
-        map(ks) do k
-            [ARGsegment(Segment{Int}(1, L), HudsonARG{Float64}(k, float(tmax)))]
+    if nallsamples == 2
+        v1s = map(enumerate(demography.populations)) do (i, pop)
+            ks = findall(id -> id == pop.id, pop_sample.ids)
+            @assert length(ks) <= demography.population_sizes[i, tmax] "Sample size larger than population size"
+            map(ks) do k
+                [Segment{Int}(1, L)]
+            end
         end
+        vc = Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}()
+    else
+        v1s = map(enumerate(demography.populations)) do (i, pop)
+            ks = findall(id -> id == pop.id, pop_sample.ids)
+            @assert length(ks) <= demography.population_sizes[i, tmax] "Sample size larger than population size"
+            map(ks) do k
+                [ARGsegment(Segment{Int}(1, L), HudsonARG{Float64}(k, float(tmax)))]
+            end
+        end
+        vc = Vector{ARGsegment{Int, HudsonARG{Float64}}}()
     end
     v2s = map(v1s) do v1
         similar(v1, 0)
     end
-    vc = Vector{ARGsegment{Int, HudsonARG{Float64}}}()
+
+    vc = run_the_loop(demography, genome, v1s, v2s, vc, tmin, tstart, tmax, nallsamples)
+
+    sort!(vc, by = first)
+    @assert sum(length, vc) == L
+
+    SimulatedAncestry(model, demography, genome, pop_sample, vc)
+end
 
 
+function run_the_loop(
+    demography::Demography,
+    genome::Genome,
+    v1s::Vector{Vector{V}},
+    v2s::Vector{Vector{V}},
+    vc::Vector{ARGsegment{Int, D}},
+    tmin::Float64,
+    tstart::Int,
+    tmax::Int,
+    nallsamples::Int
+# )::Vector{ARGsegment{Int, D}} where {V<:Union{Segment{Int}, ARGsegment{Int, D}}, D}
+)where {V, D}
+
+
+    nextevent = length(demography.events)
 
     t = tmax
     while true
@@ -507,10 +540,7 @@ function sim_ancestry(model::Hudson, demography::Demography, genome::Genome{R,M}
         t -= 1
 
     end
-    sort!(vc, by = first)
-    @assert sum(length, vc) == L
-
-    SimulatedAncestry(model, demography, genome, pop_sample, vc)
+    vc
 end
 
 
@@ -537,9 +567,9 @@ function createbranches!(arg, branches, nextinternal, idc, parent_idc, last_time
     end
 end
 
-# function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}}) where {M<:Hudson}
-#     return sa.treedata
-# end
+function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, CoalescentTreeTwoLineages}}}) where {M<:Hudson}
+    return sa.treedata
+end
 
 function get_ARGsegments(sa::SimulatedAncestry{M, Vector{ARGsegment{Int, HudsonARG{F}}}}) where {M<:Hudson, F}
     n = length(sa.sample)
