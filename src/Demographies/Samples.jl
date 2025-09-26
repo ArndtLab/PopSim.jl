@@ -27,7 +27,7 @@ function Sample(d::Demography, n::Int; population::Union{Nothing,String}=nothing
 
     if isnothing(population) 
         if length(d.populations) > 1
-            throw(ArgumentError("Population must be specified when demography has multiple populations."))
+            throw(ArgumentError("Population must be specified when demography has multiple populations. Use `population` keyword argument."))
         else
             population = d.populations[1].id
         end
