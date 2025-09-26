@@ -32,9 +32,11 @@ function StatsBase.sample(u::UniformRate, dt::Float64, n1::Int, n2::Int;
     end
     if multiple_hits == :ignore
         k = rand(Poisson(n * u.rate * dt))
+        k == 0 && return Int64[]
         return sort!(rand(n1:n2, k))
     elseif multiple_hits == :as_one
         k = rand(Poisson(n * u.rate * dt))
+        k == 0 && return Int64[]
         return unique!(sort!(rand(n1:n2, k)))
     elseif multiple_hits == :JCcorrect
         prob_corrected = (3 / 4) * (1 - exp(-4 * u.rate * dt / 3))
