@@ -298,6 +298,17 @@ end
     end
 end
 
+
+@testitem "find_last_epoch" begin
+
+    times = [0.0, 1000.0, 2000.0]
+    for t in 0.0:5000.0
+        epoch = APop.SMCprimeapprox.find_last_epoch(t, times)
+        @test epoch == findlast(t .>= times)
+    end
+end
+
+
 @testitem "SMCprime VaryingPopulation" begin
 
     for genome_length in [10, 1000, 1_000_000],

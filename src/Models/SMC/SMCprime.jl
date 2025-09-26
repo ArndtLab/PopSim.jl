@@ -61,6 +61,16 @@ function Base.iterate(ti::IBDIterator{StationaryPopulation}, pos = 1)
 end
 
 
+function find_last_epoch(t::T, times::Vector{T}) where {T}
+    for i in length(times):-1:1
+        if t >= times[i]
+            return i
+        end
+    end
+    return 1
+end
+
+
 function Base.iterate(ti::IBDIterator{VaryingPopulation}, pos = 1)
     if pos > ti.max_length
         return nothing
@@ -69,14 +79,14 @@ function Base.iterate(ti::IBDIterator{VaryingPopulation}, pos = 1)
     (; tau_recombination, tau_previous) = ti
     (; population_sizes, times) = ti.pop
 
-    epoch = findlast(tau_recombination .>= times)
+    epoch = find_last_epoch(float(tau_recombination), times)
     tau_back = tau_recombination + rand(Geometric(1 / population_sizes[epoch]))
     while (epoch < length(times)) && (tau_back >= times[epoch + 1]) && (tau_previous > times[epoch + 1])
         epoch += 1
         tau_back = times[epoch] + rand(Geometric(1 / population_sizes[epoch]))
     end
     if tau_back > tau_previous
-        epoch_pr = findlast(tau_previous .>= times)
+        epoch_pr = find_last_epoch(float(tau_previous), times)
         tau = tau_previous + rand(Geometric(1 / (2 * population_sizes[epoch_pr])))
         while (epoch_pr < length(times)) && (tau >= times[epoch_pr + 1])
             epoch_pr += 1
