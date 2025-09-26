@@ -114,10 +114,11 @@ end
 
 
 function distribute(vi::Vector{ARGsegment{T, D}}, bps::Vector{T}) where {D, T<:Integer}
-    v1 = similar(vi, 0)
-    v2 = similar(vi, 0)
-    length(vi) == 0 && return (v1, v2)
-    length(bps) == 0 && return (vi, v2)
+    length(vi) == 0 && return (nothing, nothing)
+    length(bps) == 0 && return (vi, nothing)
+
+    v1 = nothing
+    v2 = nothing
 
     posmax = last(vi[end]) + 1
     vis = StatefulWithDefaultIterator(vi, posmax)
@@ -134,9 +135,17 @@ function distribute(vi::Vector{ARGsegment{T, D}}, bps::Vector{T}) where {D, T<:I
 
         if (pos == nextintervalstop || pos == nextbppos) && nextintervalstart <= pos
             if nextpushv1
-                push!(v1, ARGsegment(Segment(nextintervalstart, pos), nextintervaldata))
+                if isnothing(v1)
+                    v1 = [ARGsegment(Segment(nextintervalstart, pos), nextintervaldata)]
+                else
+                    push!(v1, ARGsegment(Segment(nextintervalstart, pos), nextintervaldata))
+                end
             else
-                push!(v2, ARGsegment(Segment(nextintervalstart, pos), nextintervaldata))
+                if isnothing(v2)
+                    v2 = [ARGsegment(Segment(nextintervalstart, pos), nextintervaldata)]
+                else
+                    push!(v2, ARGsegment(Segment(nextintervalstart, pos), nextintervaldata))
+                end
             end
             nextintervalstart = pos + 1
         end
@@ -162,7 +171,7 @@ function distribute(vi::Vector{T}, mutation::AbstractRateDistribution)::Tuple{Ve
     length(vi) == 0 && return (similar(vi, 0), similar(vi, 0))
 
     bps = APop.sample(mutation, 1.0, first(vi[1]), last(vi[end]))
-    length(bps) == 0 && return (vi, similar(vi, 0))
+    length(bps) == 0 && return (vi, nothing)
    
     distribute(vi, bps)
 end
@@ -450,7 +459,7 @@ function run_the_loop(
                 bps = sample(recombination(genome), 1.0, first(vi[1]), last(vi[end]))
                 vi1, vi2 = distribute(vi, bps)
                 
-                if !isempty(vi1)
+                if !isnothing(vi1) && !isempty(vi1)
                     k = rand(1:2*N)
                     if k > length(v2s[parentpool])
                         push!(v2s[parentpool], vi1)
@@ -459,7 +468,7 @@ function run_the_loop(
                     end
                 end
                 
-                if !isempty(vi2)
+                if !isnothing(vi2) && !isempty(vi2)
                     k = rand(1:2*N)
                     if k > length(v2s[parentpool])
                         push!(v2s[parentpool], vi2)
