@@ -63,10 +63,12 @@ Base.show(io::IO, h::HudsonARG) = print(io, "HudsonARG(id=$(h.id), time=$(h.time
 
 
 function distribute(vi::Vector{Segment{T}}, bps::Vector{T}) where {T<:Integer}
-    v1 = Vector{Segment{T}}()
-    v2 = Vector{Segment{T}}()
-    length(vi) == 0 && return (v1, v2)
-    length(bps) == 0 && return (vi, v2)
+    
+    length(vi) == 0 && return (nothing, nothing)
+    length(bps) == 0 && return (vi, nothing)
+
+    v1 = nothing
+    v2 = nothing
 
     posmax = last(vi[end]) + 1
     vis = StatefulWithDefaultIterator(vi, posmax)
@@ -85,9 +87,17 @@ function distribute(vi::Vector{Segment{T}}, bps::Vector{T}) where {T<:Integer}
 
         if (pos == nextintervalstop || pos == nextbppos) && nextintervalstart <= pos
             if nextpushv1
-                push!(v1, Segment(nextintervalstart, pos))
+                if isnothing(v1)
+                    v1 = [Segment(nextintervalstart, pos)]
+                else
+                    push!(v1, Segment(nextintervalstart, pos))
+                end
             else
-                push!(v2, Segment(nextintervalstart, pos))
+                if isnothing(v2)
+                    v2 = [Segment(nextintervalstart, pos)]
+                else
+                    push!(v2, Segment(nextintervalstart, pos))
+                end
             end
             nextintervalstart = pos + 1
         end
@@ -108,7 +118,7 @@ function distribute(vi::Vector{Segment{T}}, bps::Vector{T}) where {T<:Integer}
         # k > 20 && break
     end
 
-    v1::Vector{Segment{T}}, v2::Vector{Segment{T}}
+    v1, v2
 end
 
 

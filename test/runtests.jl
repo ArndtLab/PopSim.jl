@@ -652,21 +652,21 @@ end
 
     vi = [Segment(2, 4)]
     v1, v2 = HudsonModel.distribute(vi, bps)
-    @test length(v1) == 1 && length(v2) == 0
+    @test length(v1) == 1 && isnothing(v2)
 
     vi = [Segment(1, 1)]
     v1, v2 = HudsonModel.distribute(vi, bps)
-    @test length(v1) == 1 && length(v2) == 0
+    @test length(v1) == 1 && isnothing(v2)
 
 
     vi = [Segment(172, 175)]
     v1, v2 = HudsonModel.distribute(vi, bps)
-    @test length(v1) + length(v2) == 1
+    @test (isnothing(v1) ? 0 : length(v1)) + (isnothing(v2) ? 0 : length(v2)) == 1
 
 
     vi = [Segment(12, 14)]
     v1, v2 = HudsonModel.distribute(vi, bps)
-    @test length(v1) == 0 && length(v2) == 1
+    @test isnothing(v1) && length(v2) == 1
 
     vi = [Segment(2, 4), Segment(12, 14)]
     v1, v2 = HudsonModel.distribute(vi, bps)
@@ -675,11 +675,11 @@ end
 
     vi = [Segment(2, 10)]
     v1, v2 = HudsonModel.distribute(vi, bps)
-    @test length(v1) == 1 && length(v2) == 0
+    @test length(v1) == 1 && isnothing(v2)
 
     vi = [Segment(11, 14)]
     v1, v2 = HudsonModel.distribute(vi, bps)
-    @test length(v1) == 0 && length(v2) == 1
+    @test isnothing(v1) && length(v2) == 1
 
     vi = [Segment(2, 10), Segment(11, 14)]
     v1, v2 = HudsonModel.distribute(vi, bps)
@@ -700,11 +700,11 @@ end
 
     vi = Segment{Int}[]
     v1, v2 = HudsonModel.distribute(vi, bps)
-    @test length(v1) == 0 && length(v2) == 0
+    @test isnothing(v1) && isnothing(v2)
 
     vi = [Segment(2, 34)]
     v1, v2 = HudsonModel.distribute(vi, Int[])
-    @test length(v1) == 1 && length(v2) == 0
+    @test length(v1) == 1 && isnothing(v2)
 
 end
 
