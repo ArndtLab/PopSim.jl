@@ -37,7 +37,7 @@ end
     add_event!(d, PopulationSizeEvent(-150, "pop1", 200))
     add_event!(d, PopulationSizeEvent(-120, "pop1", 2000))
 
-    println(PopSim.summary(d))
+    println(summary(d))
 
     tnv = TNvector(d, 2222)
     @test tnv == [2222, 1000, 30, 200, 120, 2000]
@@ -55,7 +55,7 @@ end
     @test TNvector(d, 2222) == [2222, 1000, 30, 200, 120, 2000]
     @test PopSim.get_population_index_by_id(d, "pop") == 1
     @test d.end_time == 0
-    println(PopSim.summary(d))
+    println(summary(d))
 end
 
 @testitem "Demography" begin
@@ -589,7 +589,7 @@ end
     set_end_time!(d, 12)
     
 
-    @test startswith(PopSim.summary(d), "Demography with 4 populations, 3 events, start time 0, end time 12")
+    @test startswith(summary(d), "Demography with 4 populations, 3 events, start time 0, end time 12")
 
     out = """
 Demography with 4 populations, 3 events, start time 0, end time 12
@@ -606,7 +606,7 @@ Demography with 4 populations, 3 events, start time 0, end time 12
      12:       0       0       0     100"""
 
 
-    out1 = PopSim.summary(d)
+    out1 = summary(d)
     @test replace(out, r"\s+" => "") == replace(out1, r"\s+" => "")
 
     g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)

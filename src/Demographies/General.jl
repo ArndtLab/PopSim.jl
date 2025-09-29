@@ -214,7 +214,7 @@ function fix_population_sizes!(d::Demography)
     return d
 end
 
-function summary(d::Demography)
+function Base.summary(d::Demography)
     io = IOBuffer()
     write(io, "Demography with $(length(d.populations)) populations, " *
            "$(length(d.events)) events, start time $(d.start_time), end time $(d.end_time)")
