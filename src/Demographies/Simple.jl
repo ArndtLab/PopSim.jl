@@ -63,14 +63,14 @@ TNvector(d::StationaryPopulation) = [genome_length(d), size(d)]
 
 
 
-struct VaryingPopulation
+struct VaryingPopulation{T}
     ploidy::Int
     genome_length::Int
     recombination_rate::Float64
     mutation_rate::Float64
 
     population_sizes::Vector{Int}
-    times::Vector{Float64}
+    times::Vector{T}
 end
 
 
@@ -116,7 +116,7 @@ function VaryingPopulation(;
         @assert isnothing(genome_length) "Cannot provide both TNvector and genome_length"
 
         t = 0
-        times = [0.0]
+        times = [0]
         population_sizes = Int[]
         i = length(TNvector)
         while i > 2

@@ -295,6 +295,34 @@ end
         ibss = collect(PopSim.IBSIteratorTwoLineages(ibds, mutation_rate))
         @test length(ibss) > 0
         @test genome_length == sum(length, ibss)
+
+
+        
+    end
+end
+
+
+@testitem "SMCprime StationaryPopulation steamed" begin
+
+    for genome_length in [1000, 100000000],
+            mutation_rate in [1.0e-6],
+            recombination_rate in [1.0e-8, 1.0e-9]
+
+        tnv = [genome_length, 1000, 30, 200, 120, 2000]
+        
+        pop = VaryingPopulation(; TNvector = tnv, mutation_rate, recombination_rate)
+        @test pop.genome_length == genome_length
+        @test pop.recombination_rate == recombination_rate
+        @test pop.mutation_rate == mutation_rate
+
+        s = 0
+        n = 0
+        for ibs_segment in IBSIterator(PopSim.SMCprimeapprox.IBDIterator(pop), mutation_rate)
+            s += length(ibs_segment)
+            n += 1
+        end
+        @test genome_length == s
+        
     end
 end
 
@@ -316,8 +344,10 @@ end
             size in [10, 1000]
 
         population_sizes = [size, size ÷ 10, size]
-        times = [0.0, 1000.0, 2000.0]
+        # times = [0.0, 1000.0, 2000.0]
+        times = [0, 1000, 2000]
         pop = VaryingPopulation(; genome_length, mutation_rate, population_sizes, times)
+        # @show typeof(pop)
 
         @test pop.genome_length == genome_length
 

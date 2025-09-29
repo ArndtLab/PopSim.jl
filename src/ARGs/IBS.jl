@@ -4,19 +4,19 @@ export IBSIterator, IBMIterator, IBD2Iterator
 
 
 mutable struct IBSIteratorTwoLineages{T,RD <: AbstractRateDistribution} 
-    ibxs::Iterators.Stateful{T}
+    ibxs::T
     mutation::RD
-    mut_kwargs
+    multiple_hits::Symbol
     breaks::Vector{Int64}
     nbi::Int64
     lastibxstop::Int64
 end
 
-IBSIteratorTwoLineages(ibds, mutation::AbstractRateDistribution; mut_kwargs...) = 
-    IBSIteratorTwoLineages(Iterators.Stateful(ibds), mutation, mut_kwargs, Int[], 0, 0)
+IBSIteratorTwoLineages(ibds, mutation::AbstractRateDistribution; multiple_hits::Symbol = :ignore) = 
+    IBSIteratorTwoLineages(Iterators.Stateful(ibds), mutation, multiple_hits, Int[], 0, 0)
 
 IBSIteratorTwoLineages(ibds, mutation_rate::Number; mut_kwargs...) = 
-    IBSIteratorTwoLineages(Iterators.Stateful(ibds), UniformRate(mutation_rate); mut_kwargs...)
+    IBSIteratorTwoLineages(ibds, UniformRate(mutation_rate); mut_kwargs...)
 
 Base.IteratorSize(::Type{IBSIteratorTwoLineages{T, RD}}) where {T, RD} = Base.SizeUnknown()
 Base.IteratorEltype(::Type{IBSIteratorTwoLineages{T}}) where {T} = Base.HasEltype()
@@ -41,12 +41,12 @@ function Base.iterate(si::IBSIteratorTwoLineages, pos = 1)
                 return  ARGsegment(Segment(pos, si.lastibxstop), r), nothing
             end
             
-            ibx, _ = iterate(si.ibxs)
+            ibx = popfirst!(si.ibxs)
             r += 1
             si.lastibxstop = last(ibx)
 
             dt = timespan(ibx)
-            si.breaks = PopSim.sample(si.mutation, 2 * dt, first(ibx), last(ibx); si.mut_kwargs...)
+            si.breaks = PopSim.sample(si.mutation, 2 * dt, first(ibx), last(ibx); multiple_hits = si.multiple_hits)
 
             if !isempty(si.breaks)
                 si.nbi = 1
@@ -58,6 +58,10 @@ function Base.iterate(si::IBSIteratorTwoLineages, pos = 1)
         end
     end
 end
+
+
+
+
 
 
 
