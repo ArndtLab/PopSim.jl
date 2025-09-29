@@ -2,10 +2,10 @@ module HudsonModel
 
 export Hudson, sim_ancestry, get_ARGsegments
 
-using ..APop
+using ..PopSim
 using Distributions
 
-import ..APop: sim_ancestry
+import ..PopSim: sim_ancestry
 
 
 struct Hudson <: AbstractEvolutionaryModel end
@@ -180,7 +180,7 @@ function distribute(vi::Vector{T}, mutation::AbstractRateDistribution)::Tuple{Ve
 
     length(vi) == 0 && return (similar(vi, 0), similar(vi, 0))
 
-    bps = APop.sample(mutation, 1.0, first(vi[1]), last(vi[end]))
+    bps = PopSim.sample(mutation, 1.0, first(vi[1]), last(vi[end]))
     length(bps) == 0 && return (vi, nothing)
    
     distribute(vi, bps)
@@ -461,7 +461,7 @@ function run_the_loop(
             
             for vi in v1s_p
                 # choose parentpool
-                parentpool = APop.get_rand_parentpool(demography, p)
+                parentpool = PopSim.get_rand_parentpool(demography, p)
                 
                 N = demography.population_sizes[parentpool, tparent]
                 @assert N > 0 "Population size must be > 0: p=$p t=$t parentpool=$parentpool"
@@ -526,18 +526,18 @@ function run_the_loop(
             if e isa PopulationSizeEvent
                 continue  # already taken care of in fix_population_sizes!
             elseif e isa PopulationSplitEvent
-                si = APop.get_population_index_by_id(demography, e.source_population_id)
+                si = PopSim.get_population_index_by_id(demography, e.source_population_id)
                 @assert isempty(v1s[si])
                 empty!(v1s[si])
                 for target_population_id in e.target_population_ids
-                    ti = APop.get_population_index_by_id(demography, target_population_id)
+                    ti = PopSim.get_population_index_by_id(demography, target_population_id)
                     append!(v1s[si], v1s[ti])
                     empty!(v1s[ti])
                 end
             elseif e isa PopulationMergeEvent
-                ti = APop.get_population_index_by_id(demography, e.target_population_id)
+                ti = PopSim.get_population_index_by_id(demography, e.target_population_id)
                 sis = map(e.source_population_ids) do source_population_id
-                    APop.get_population_index_by_id(demography, source_population_id)
+                    PopSim.get_population_index_by_id(demography, source_population_id)
                 end
                 @assert all(i -> isempty(v1s[i]), sis)
                 props = map(sis) do si

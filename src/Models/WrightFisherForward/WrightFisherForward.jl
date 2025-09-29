@@ -3,8 +3,8 @@ module WrightFisherForwardModel
 
 export WrightFisher, sim_ancestry, get_ARGsegments
 
-using ..APop
-import ..APop: sim_ancestry
+using ..PopSim
+import ..PopSim: sim_ancestry
 
 include("CrossOverStores.jl")
 using .CrossoverStores
@@ -76,11 +76,11 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
     # prechecks
     @assert demography.ploidy == 2 "Not implemented"
 
-    # println(APop.summary(demography))
+    # println(PopSim.summary(demography))
 
 
     # setup
-    APop.fix_population_sizes!(demography)
+    PopSim.fix_population_sizes!(demography)
 
 
     cos = CrossoverStores.MemoryCrossoverStore(length(genome))
@@ -133,7 +133,7 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
         nalives = map(enumerate(alives)) do (i, alive)
             targetN = demography.population_sizes[i, t]
             alive1 = map(1:targetN) do k
-                parentpool = alives[APop.get_rand_parentpool(demography, i)]
+                parentpool = alives[PopSim.get_rand_parentpool(demography, i)]
                 a1, a2 = sample(parentpool, 2, replace=model.allow_selfing)
                 
                 a11, a12 = randomswap(a1[1], a1[2])

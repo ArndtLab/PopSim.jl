@@ -1,14 +1,14 @@
 ```@meta
-CurrentModule = APop
+CurrentModule = PopSim
 ```
 
-# APop
+# PopSim
 
-Documentation for [APop](https://github.com/ArndtLab/APop.jl).
+Documentation for [PopSim](https://github.com/ArndtLab/PopSim.jl).
 
 ```@index
 ```
 
 ```@autodocs
-Modules = [APop]
+Modules = [PopSim]
 ```

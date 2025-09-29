@@ -68,6 +68,6 @@ jobs:
         shell: julia --project=docs --color=yes {0}
         run: |
           using Documenter: DocMeta, doctest
-          using APop
-          DocMeta.setdocmeta!(APop, :DocTestSetup, :(using APop); recursive=true)
-          doctest(APop)
+          using PopSim
+          DocMeta.setdocmeta!(PopSim, :DocTestSetup, :(using PopSim); recursive=true)
+          doctest(PopSim)

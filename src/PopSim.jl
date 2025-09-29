@@ -1,4 +1,4 @@
-module APop
+module PopSim
 
 using DataStructures
 using Random

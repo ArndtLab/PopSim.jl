@@ -1,14 +1,14 @@
-using APop
+using PopSim
 using Documenter
 
-DocMeta.setdocmeta!(APop, :DocTestSetup, :(using APop); recursive=true)
+DocMeta.setdocmeta!(PopSim, :DocTestSetup, :(using PopSim); recursive=true)
 
 makedocs(;
-    modules=[APop],
+    modules=[PopSim],
     authors="Peter Arndt <arndt@molgen.mpg.de> and contributors",
-    sitename="APop.jl",
+    sitename="PopSim.jl",
     format=Documenter.HTML(;
-        canonical="https://ArndtLab.github.io/APop.jl",
+        canonical="https://ArndtLab.github.io/PopSim.jl",
         edit_link="main",
         assets=String[],
     ),
@@ -19,6 +19,6 @@ makedocs(;
 )
 
 deploydocs(;
-    repo="github.com/ArndtLab/APop.jl",
+    repo="github.com/ArndtLab/PopSim.jl",
     devbranch="main",
 )

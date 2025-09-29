@@ -2,7 +2,7 @@ module SMCapprox
 
 using Distributions
 using Random
-using ..APop
+using ..PopSim
 
 export SMC
 
