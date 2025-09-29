@@ -17,7 +17,7 @@ using TestItemRunner
     @test_throws ArgumentError StationaryPopulation(size = 0)    # Invalid size
     
     
-    @test APop.ploidy(sd) == 2
+    @test PopSim.ploidy(sd) == 2
     @test size(sd) == 100
     
     
@@ -37,7 +37,7 @@ end
     add_event!(d, PopulationSizeEvent(-150, "pop1", 200))
     add_event!(d, PopulationSizeEvent(-120, "pop1", 2000))
 
-    println(APop.summary(d))
+    println(PopSim.summary(d))
 
     tnv = TNvector(d, 2222)
     @test tnv == [2222, 1000, 30, 200, 120, 2000]
@@ -51,11 +51,11 @@ end
     @test all(TNvector(vp) .≈ tnv)
 
     d = Demography()
-    APop.set_via_TNvector!(d, [2222, 1000, 30, 200, 120, 2000])
+    PopSim.set_via_TNvector!(d, [2222, 1000, 30, 200, 120, 2000])
     @test TNvector(d, 2222) == [2222, 1000, 30, 200, 120, 2000]
-    @test APop.get_population_index_by_id(d, "pop") == 1
+    @test PopSim.get_population_index_by_id(d, "pop") == 1
     @test d.end_time == 0
-    println(APop.summary(d))
+    println(PopSim.summary(d))
 end
 
 @testitem "Demography" begin
@@ -87,7 +87,7 @@ end
     @test d.migration[3, 3] == 1.0
 
     @test_throws ArgumentError TNvector(d, 1000)  
-    @test_throws ArgumentError APop.get_population_index_by_id(d, "pop4")
+    @test_throws ArgumentError PopSim.get_population_index_by_id(d, "pop4")
 end
 
 
@@ -96,8 +96,8 @@ end
     ur = UniformRate(0.1)
     g = Genome(ur, ur, 1000)
     @test length(g) == 1000
-    @test APop.rate(recombination(g)) == 0.1
-    @test APop.rate(mutation(g)) == 0.1
+    @test PopSim.rate(recombination(g)) == 0.1
+    @test PopSim.rate(mutation(g)) == 0.1
     @test string(g) == "Genome(recombination=Uniform(rate=0.1), mutation=Uniform(rate=0.1), length=1000)"
 
     g = Genome(recombination_rate=0.1, mutation_rate=0.1, length=1000)
@@ -142,7 +142,7 @@ end
     S = 100000
     for L in [1,10,100,1000], dt in [0.1, 1.0, 10]
         x = mapreduce(+, 1:S) do i
-            length(APop.sample(u, dt, 1, L))
+            length(PopSim.sample(u, dt, 1, L))
         end
         @test abs(x / (L * S * rate * dt) - 1) < 0.1
     end
@@ -155,7 +155,7 @@ end
     nu = NonUniformRate(rates)
     @test average_rate(nu) ≈ 0.019
 
-    s = APop.sample(nu, 1.0, 1, L)
+    s = PopSim.sample(nu, 1.0, 1, L)
     @test all(x -> x in 1:L, s)
     ss = map(1:10) do m
         sum(i -> i % 10 == m % 10, s)
@@ -163,7 +163,7 @@ end
     @test ss[1] > 4 * ss[2]
 
     
-    s = APop.sample(nu, 100000.0, 2, 10)
+    s = PopSim.sample(nu, 100000.0, 2, 10)
     @test all(x -> x in 2:10, s)
     ss = map(1:10) do m
         sum(i -> i % 10 == m % 10, s)
@@ -177,17 +177,17 @@ end
         L = 100
         u = UniformRate(rate)
 
-        r = APop.sample(u, 10*L/rate, 1, L; multiple_hits = :ignore)
+        r = PopSim.sample(u, 10*L/rate, 1, L; multiple_hits = :ignore)
         @test all(x -> x in 1:L, r)
         @test length(r) > 2*L
 
-        r = APop.sample(u, 100*L/rate, 1, L; multiple_hits = :as_one)
+        r = PopSim.sample(u, 100*L/rate, 1, L; multiple_hits = :as_one)
         @test all(x -> x in 1:L, r)
         @test allunique(r)
         @test length(r) == L
 
         L = 10000
-        r = APop.sample(u, 100*L/rate, 1, L; multiple_hits = :JCcorrect)
+        r = PopSim.sample(u, 100*L/rate, 1, L; multiple_hits = :JCcorrect)
         @test all(x -> x in 1:L, r)
         @test allunique(r)
         @test 0.65 * L < length(r) < 0.85 * L
@@ -237,23 +237,23 @@ end
     tree = CoalescentTreeTwoLineages(1, tau)
 
     ibds = [ARGsegment(Segment(1, 1000), tree), ARGsegment(Segment(1001, 2000), tree)]
-    ibs = collect(APop.IBSIterator(ibds,mut))
+    ibs = collect(PopSim.IBSIterator(ibds,mut))
     @test length(ibs) > 3000
     @test sum(length, ibs) === 2000
 
-    ibs = collect(APop.IBSIterator(ibds, mut, multiple_hits = :as_one))
+    ibs = collect(PopSim.IBSIterator(ibds, mut, multiple_hits = :as_one))
     @test length(ibs) in [1999,2000,2001]
     @test sum(length, ibs) === 2000
 
-    ibs = collect(APop.IBSIterator(ibds, mut, multiple_hits = :JCcorrect))
+    ibs = collect(PopSim.IBSIterator(ibds, mut, multiple_hits = :JCcorrect))
     @test length(ibs) < 1750
     @test sum(length, ibs) === 2000
 
-    ibs = collect(APop.IBSIterator(ibds, mut_rate, multiple_hits = :as_one))
+    ibs = collect(PopSim.IBSIterator(ibds, mut_rate, multiple_hits = :as_one))
     @test length(ibs) in [1999,2000,2001]
     @test sum(length, ibs) === 2000
 
-    ibs = collect(APop.IBSIterator(ibds, mut_rate, multiple_hits = :JCcorrect))
+    ibs = collect(PopSim.IBSIterator(ibds, mut_rate, multiple_hits = :JCcorrect))
     @test length(ibs) < 1750
     @test sum(length, ibs) === 2000
 
@@ -269,11 +269,11 @@ end
         pop = StationaryPopulation(; genome_length, mutation_rate, size)
         @test pop.genome_length == genome_length
 
-        ibds = collect(APop.SMCapprox.IBDIterator(pop))
+        ibds = collect(PopSim.SMCapprox.IBDIterator(pop))
         @test length(ibds) > 0
         @test genome_length == sum(length, ibds)
 
-        ibss = collect(APop.IBSIteratorTwoLineages(ibds, mutation_rate))
+        ibss = collect(PopSim.IBSIteratorTwoLineages(ibds, mutation_rate))
         @test length(ibss) > 0
         @test genome_length == sum(length, ibss)
     end
@@ -288,11 +288,11 @@ end
         pop = StationaryPopulation(; genome_length, mutation_rate, size)
         @test pop.genome_length == genome_length
 
-        ibds = collect(APop.SMCprimeapprox.IBDIterator(pop))
+        ibds = collect(PopSim.SMCprimeapprox.IBDIterator(pop))
         @test length(ibds) > 0
         @test genome_length == sum(length, ibds)
 
-        ibss = collect(APop.IBSIteratorTwoLineages(ibds, mutation_rate))
+        ibss = collect(PopSim.IBSIteratorTwoLineages(ibds, mutation_rate))
         @test length(ibss) > 0
         @test genome_length == sum(length, ibss)
     end
@@ -303,7 +303,7 @@ end
 
     times = [0.0, 1000.0, 2000.0]
     for t in 0.0:5000.0
-        epoch = APop.SMCprimeapprox.find_last_epoch(t, times)
+        epoch = PopSim.SMCprimeapprox.find_last_epoch(t, times)
         @test epoch == findlast(t .>= times)
     end
 end
@@ -321,11 +321,11 @@ end
 
         @test pop.genome_length == genome_length
 
-        ibds = collect(APop.SMCprimeapprox.IBDIterator(pop))
+        ibds = collect(PopSim.SMCprimeapprox.IBDIterator(pop))
         @test length(ibds) > 0
         @test genome_length == sum(length, ibds)
 
-        ibss = collect(APop.IBSIteratorTwoLineages(ibds, mutation_rate))
+        ibss = collect(PopSim.IBSIteratorTwoLineages(ibds, mutation_rate))
         @test length(ibss) > 0
         @test genome_length == sum(length, ibss)
     end
@@ -334,7 +334,7 @@ end
 
 @testitem "MemoryCrossoverStore" begin
 
-    using APop.WrightFisherForwardModel.CrossoverStores
+    using PopSim.WrightFisherForwardModel.CrossoverStores
 
     c = MemoryCrossoverStore(100)
 
@@ -393,7 +393,7 @@ end
 
 @testitem  "VectorCrossoverStore" begin
 
-    using APop.WrightFisherForwardModel.CrossoverStores
+    using PopSim.WrightFisherForwardModel.CrossoverStores
 
     c = VectorCrossoverStore(100)
 
@@ -449,11 +449,11 @@ end
 
 
 @testitem "Individual" begin
-    using APop.WrightFisherForwardModel
+    using PopSim.WrightFisherForwardModel
     i = Individual(1, 2)
     @test i.alleles[1] == 1
     @test i.alleles[2] == 2
-    @test APop.WrightFisherForwardModel.ploidy(i) == 2
+    @test PopSim.WrightFisherForwardModel.ploidy(i) == 2
     @test i[1] == 1
     @test i[2] == 2
     @test length(i) == 2
@@ -461,7 +461,7 @@ end
 end
 
 @testitem "WrightFisher - ARG etc" begin
-    using APop.WrightFisherForwardModel
+    using PopSim.WrightFisherForwardModel
     
     population_size = 100
     mutation_rate = 2e-8
@@ -478,7 +478,7 @@ end
     model = WrightFisher()
 
 
-    anc = APop.WrightFisherForwardModel.sim_ancestry(model, d, g)
+    anc = PopSim.WrightFisherForwardModel.sim_ancestry(model, d, g)
     @test length(anc.alives) == length(d.populations)
 
 
@@ -525,7 +525,7 @@ end
     @test sum(length, mutARGmulti) == L
     @test all(seg -> iscoalescent(seg), mutARGmulti)
     @test all(seg -> 0.0 <= timespan(seg) < Inf, mutARGmulti)
-    @test typeof(mutARGmulti[1]) == APop.ARGsegment{Int64, APop.CoalescentTree{Vector{APop.MutatedBranch}, Float64}}
+    @test typeof(mutARGmulti[1]) == PopSim.ARGsegment{Int64, PopSim.CoalescentTree{Vector{PopSim.MutatedBranch}, Float64}}
 
     IBSmutARGmulti = collect(IBSIterator(mutARGmulti, 1,2))
     @test length(IBSmutARGmulti) > 0
@@ -537,7 +537,7 @@ end
 
 
 @testitem "WrightFisher - Events" begin
-    using APop.WrightFisherForwardModel
+    using PopSim.WrightFisherForwardModel
     
     population_size = 100
     mutation_rate = 2e-8
@@ -559,7 +559,7 @@ end
     set_end_time!(d, 12)
     
 
-    @test startswith(APop.summary(d), "Demography with 4 populations, 3 events, start time 0, end time 12")
+    @test startswith(PopSim.summary(d), "Demography with 4 populations, 3 events, start time 0, end time 12")
 
     out = """
 Demography with 4 populations, 3 events, start time 0, end time 12
@@ -576,7 +576,7 @@ Demography with 4 populations, 3 events, start time 0, end time 12
      12:       0       0       0     100"""
 
 
-    out1 = APop.summary(d)
+    out1 = PopSim.summary(d)
     @test replace(out, r"\s+" => "") == replace(out1, r"\s+" => "")
 
     g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)
@@ -614,34 +614,34 @@ end
     
 
     i = 1
-    pp = map(k -> APop.get_rand_parentpool(d,i), 1:10000) 
+    pp = map(k -> PopSim.get_rand_parentpool(d,i), 1:10000) 
     @test all(==(1), pp)
 
     i = 2
-    pp = map(k -> APop.get_rand_parentpool(d, i), 1:10000) 
+    pp = map(k -> PopSim.get_rand_parentpool(d, i), 1:10000) 
     @test all(==(2), pp)
 
     i = 3
-    pp = map(k -> APop.get_rand_parentpool(d, i), 1:10000) 
+    pp = map(k -> PopSim.get_rand_parentpool(d, i), 1:10000) 
     @test all(in([2,3]), pp)
     @test length(pp) * 0.15 > sum(==(2), pp) > 0.05 * length(pp)
     @test sum(==(3), pp) > 0.8 * length(pp)
 
     i = 4
-    pp = map(k -> APop.get_rand_parentpool(d, i), 1:10000) 
+    pp = map(k -> PopSim.get_rand_parentpool(d, i), 1:10000) 
     @test all(in([4,5]), pp)
     @test length(pp) * 0.6 > sum(==(4), pp) > 0.4 * length(pp)
     @test length(pp) * 0.6 > sum(==(5), pp) > 0.4 * length(pp)
 
     i = 5
-    pp = map(k -> APop.get_rand_parentpool(d, i), 1:10000) 
+    pp = map(k -> PopSim.get_rand_parentpool(d, i), 1:10000) 
     @test all(in([4,5]), pp)
     @test length(pp) * 0.6 > sum(==(4), pp) > 0.4 * length(pp)
     @test length(pp) * 0.6 > sum(==(5), pp) > 0.4 * length(pp)
 end
 
 @testitem "Hudson StatefulWithDefaultIterator" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
 
     si = HudsonModel.StatefulWithDefaultIterator([1, 2, 3], 0)
     @test HudsonModel.nextitem(si) == 1
@@ -658,7 +658,7 @@ end
 
 
 @testitem "Hudson distribute" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
     bps = [10, 20, 30, 100, 110, 120, 130, 140, 150, 160]
 
     vi = [Segment(2, 4)]
@@ -721,7 +721,7 @@ end
 
 
 @testitem "Hudson distribute rate" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
 
     vi = [Segment(1, 1000000)]
     v1, v2 = HudsonModel.distribute(vi, UniformRate(1e-3))
@@ -740,7 +740,7 @@ end
 
 
 @testitem "Hudson coalesce" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
 
     n = 2
     t = -1.0
@@ -796,7 +796,7 @@ end
 
 
 @testitem "coalesce loop" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
     t = 1.0
     tmax = 2.0
     n = 2
@@ -820,7 +820,7 @@ end
 
 
 @testitem "Hudson distribute & coalesce" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
 
     v1 = [Segment(1, 100)]
     v2 = [Segment(1, 100)]
@@ -849,7 +849,7 @@ end
 
 
 @testitem "Hudson StationaryPopulation" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
 
 
     for genome_length in [1000, 10000, 1000000],
@@ -868,7 +868,7 @@ end
         model = Hudson()
 
         anc = sim_ancestry(model, d, g, 2)
-        ibds = APop.HudsonModel.get_ARGsegments(anc) 
+        ibds = PopSim.HudsonModel.get_ARGsegments(anc) 
 
         @test sum(length, ibds) == genome_length
         # ibd2 = IBD2Iterator(ibds, [1, 2])
@@ -888,7 +888,7 @@ end
 
 
 @testitem "Hudson StationaryPopulation with tmin" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
 
 
     for genome_length in [1000000, 10000000],
@@ -906,8 +906,8 @@ end
 
         model = Hudson()
 
-        anc = APop.HudsonModel.sim_ancestry(model, d, g, 2, tmin = 3995.0)
-        ibds = APop.HudsonModel.get_ARGsegments(anc) 
+        anc = PopSim.HudsonModel.sim_ancestry(model, d, g, 2, tmin = 3995.0)
+        ibds = PopSim.HudsonModel.get_ARGsegments(anc) 
 
         @test sum(length, ibds) == genome_length
         @test sum(!iscoalescent, ibds) > 0
@@ -918,8 +918,8 @@ end
         @test sum(length, IBSIterator(ibds2, mutation(g))) == genome_length
 
 
-        anc = APop.HudsonModel.sim_ancestry(model, d, g, 3, tmin = 3995.0)
-        ibds = APop.HudsonModel.get_ARGsegments(anc) 
+        anc = PopSim.HudsonModel.sim_ancestry(model, d, g, 3, tmin = 3995.0)
+        ibds = PopSim.HudsonModel.get_ARGsegments(anc) 
 
         @test sum(length, ibds) == genome_length
         @test sum(!iscoalescent, ibds) > 0
@@ -929,8 +929,8 @@ end
         @test sum(length, ibs) == genome_length
 
 
-        anc = APop.HudsonModel.sim_ancestry(model, d, g, 4, tmin = 3995.0)
-        ibds = APop.HudsonModel.get_ARGsegments(anc) 
+        anc = PopSim.HudsonModel.sim_ancestry(model, d, g, 4, tmin = 3995.0)
+        ibds = PopSim.HudsonModel.get_ARGsegments(anc) 
 
         @test sum(length, ibds) == genome_length
         @test sum(!iscoalescent, ibds) > 0
@@ -943,7 +943,7 @@ end
 
 
 @testitem "Hudson StationaryPopulation Multi" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
 
 
     for genome_length in [1000, 10000, 1000000],
@@ -962,7 +962,7 @@ end
         model = Hudson()
 
         anc = sim_ancestry(model, d, g, n)
-        ibds = APop.HudsonModel.get_ARGsegments(anc) 
+        ibds = PopSim.HudsonModel.get_ARGsegments(anc) 
 
         @test sum(length, ibds) == genome_length
         ibm = collect(IBMIterator(ibds, g.mutation))
@@ -976,7 +976,7 @@ end
 
 
 @testitem "Hudson - Events" begin
-    using APop.HudsonModel
+    using PopSim.HudsonModel
 
     population_size = 100
     mutation_rate = 2e-8
@@ -1006,7 +1006,7 @@ end
 
 
     anc = sim_ancestry(model, d, g, sample)
-    ibds = APop.HudsonModel.get_ARGsegments(anc) 
+    ibds = PopSim.HudsonModel.get_ARGsegments(anc) 
 
     @test sum(length, ibds) == L
 

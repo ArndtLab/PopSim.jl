@@ -46,7 +46,7 @@ function Base.iterate(si::IBSIteratorTwoLineages, pos = 1)
             si.lastibxstop = last(ibx)
 
             dt = timespan(ibx)
-            si.breaks = APop.sample(si.mutation, 2 * dt, first(ibx), last(ibx); si.mut_kwargs...)
+            si.breaks = PopSim.sample(si.mutation, 2 * dt, first(ibx), last(ibx); si.mut_kwargs...)
 
             if !isempty(si.breaks)
                 si.nbi = 1
@@ -74,7 +74,7 @@ function sprinckle_mutations(s::ARGsegment{Int64, CoalescentTree{Vector{Branch},
             dt = b.time > -Inf ? b.time - branches[b.ancestor_k].time : 0.0
             @assert dt >= 0.0 "dt=$dt < 0.0 for branch $(b.id) with ancestor $(b.ancestor_k): time1: $(b.time) time2: $(branches[b.ancestor_k].time)"
             MutatedBranch(b.id, b.time, b.ancestor_k,
-                APop.sample(mut, dt, first(s), last(s); kwargs...)
+                PopSim.sample(mut, dt, first(s), last(s); kwargs...)
             )
         else
             MutatedBranch(b.id, b.time, b.ancestor_k, Int64[])

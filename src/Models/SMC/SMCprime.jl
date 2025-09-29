@@ -1,6 +1,6 @@
 module SMCprimeapprox
 
-using ..APop
+using ..PopSim
 using Distributions
 using Random
 
