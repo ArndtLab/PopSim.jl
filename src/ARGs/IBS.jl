@@ -131,7 +131,7 @@ end
 
 
 mutable struct IBSIteratorMutated{T, V}
-    ibxs::Iterators.Stateful{T}
+    ibxs::T
     vids::V
     breaks::Vector{Int64}
     nbi::Int64
