@@ -972,6 +972,32 @@ end
 end
 
 
+
+@testitem "Hudson StationaryPopulation with Progress" begin
+    using PopSim.HudsonModel
+
+
+    genome_length = 1000000000
+    population_size = 1000
+    recombination_rate = 1.0e-8
+    mutation_rate = 1.0e-10
+
+    d = Demography()
+    add_population!(d, Population(id = "pop1", size = population_size))
+    set_end_time!(d, 4000)
+
+    
+    g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  genome_length)
+    model = Hudson()
+
+    anc = PopSim.HudsonModel.sim_ancestry(model, d, g, 2, tmin = -10000.0, show_progress = true)
+    ibds = PopSim.HudsonModel.get_ARGsegments(anc) 
+    @test sum(length, ibds) == genome_length
+end
+
+
+
+
 @testitem "Hudson StationaryPopulation Multi" begin
     using PopSim.HudsonModel
 
