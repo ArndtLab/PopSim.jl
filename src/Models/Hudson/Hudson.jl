@@ -456,14 +456,14 @@ function run_the_loop(
 
 
     nextevent = length(demography.events)
-    prog = ProgressUnknown(desc="Time:", dt = 10, enabled=show_progress)
-    generate_showvalues(vs) = () -> [("number of genomes tracked", sum(length, vs)),]
+    prog = ProgressUnknown(desc="Generations:", dt = 10, enabled=show_progress)
+    # generate_showvalues(vs) = () -> [("number of genomes tracked", sum(length, vs)),]
 
 
     t = tmax
     while true
     
-        update!(prog, t)
+        update!(prog, tmax - t)
 
         # print("t=$t\t")
         # for p in 1:length(demography.populations)
@@ -515,7 +515,6 @@ function run_the_loop(
         end
 
         if all(isempty, v1s) # every linage coalesced
-            finish!(prog)
             break
         end
 
@@ -534,7 +533,6 @@ function run_the_loop(
                 end
             end
             @assert !isempty(v3)
-            finish!(prog)
             break
         end
 
@@ -581,6 +579,8 @@ function run_the_loop(
         t -= 1
 
     end
+    finish!(prog)
+
     vc
 end
 
