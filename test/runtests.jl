@@ -137,7 +137,7 @@ end
     # using StatsBase
     rate = 0.1
     u = UniformRate(rate)
-    @test average_rate(u) == rate
+    @test PopSim.average_rate(u) == rate
 
     S = 100000
     for L in [1,10,100,1000], dt in [0.1, 1.0, 10]
@@ -148,12 +148,12 @@ end
     end
 
     nu = NonUniformRate([0.1, 0.2, 0.3, 0.4])
-    @test average_rate(nu) == 0.25
+    @test PopSim.average_rate(nu) == 0.25
 
     L = 10000
     rates = [i % 10 == 1 ? 0.1 : 0.01 for i in 1:L]
     nu = NonUniformRate(rates)
-    @test average_rate(nu) ≈ 0.019
+    @test PopSim.average_rate(nu) ≈ 0.019
 
     s = PopSim.sample(nu, 1.0, 1, L)
     @test all(x -> x in 1:L, s)
@@ -509,16 +509,16 @@ end
 
 
     anc = PopSim.WrightFisherForwardModel.sim_ancestry(model, d, g)
-    @test length(anc.alives) == length(d.populations)
+    @test length(anc.data.alives) == length(d.populations)
 
 
 
 
-    indv = anc.alives[1][1]
+    indv = anc.data.alives[1][1]
     @test indv[1] > 2 * population_size
     @test indv[2] > 2 * population_size
 
-    ARG = collect(get_ARGsegments(anc, [indv[1], indv[2] ]))
+    ARG = collect(PopSim.WrightFisherForwardModel.get_ARGsegments(anc, [indv[1], indv[2] ]))
     @test length(ARG) > 0
     @test all(seg -> length(seg) > 0, ARG)
     @test sum(length, ARG) == L
@@ -541,8 +541,8 @@ end
     @test sum(length, ibs) == L
 
 
-    indv2 = anc.alives[1][2]
-    ARGmulti = collect(get_ARGsegments(anc, [indv[1], indv[2], indv2[1]]))
+    indv2 = anc.data.alives[1][2]
+    ARGmulti = collect(PopSim.WrightFisherForwardModel.get_ARGsegments(anc, [indv[1], indv[2], indv2[1]]))
     @test length(ARGmulti) > 0
     @test all(seg -> length(seg) >= 0, ARGmulti)
     @test sum(length, ARGmulti) == L
@@ -615,7 +615,7 @@ Demography with 4 populations, 3 events, start time 0, end time 12
 
 
     anc = sim_ancestry(model, d, g)
-    @test length(anc.alives) == length(d.populations)
+    @test length(anc.data.alives) == length(d.populations)
 end
 
 
@@ -1069,3 +1069,50 @@ end
     
 
 end
+
+
+
+@testitem "ibs function" begin
+
+    population_size = 100
+    mutation_rate = 2e-8
+    recombination_rate = 1e-8
+    L = 1_000_000_000
+
+    
+    d = Demography()
+    add_population!(d, Population(id = "pop1", description = "Population 1", size = population_size))
+    
+    set_start_time!(d, 0)
+    set_end_time!(d, 4000)
+    
+
+    g = Genome(UniformRate(recombination_rate), UniformRate(mutation_rate),  L)
+
+
+
+    models = [WrightFisher(), Hudson(), SMCprime()]
+    
+    model = models[1]
+    @show model
+    anc = sim_ancestry(model, d, g, 2)
+    @test sum(length, ibs(anc)) == L
+
+    model = models[2]
+    @show model
+    anc = sim_ancestry(model, d, g, 2)
+    @test sum(length, ibs(anc)) == L
+
+    model = models[3]
+    @show model
+    anc = sim_ancestry(model, d, g)
+    @test sum(length, ibs(anc)) == L
+
+    model = models[3]
+    @show model
+    anc = sim_ancestry(model, d, g, 2)
+    @test sum(length, ibs(anc)) == L
+    
+
+end
+

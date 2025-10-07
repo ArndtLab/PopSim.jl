@@ -1,6 +1,6 @@
 module HudsonModel
 
-export Hudson, sim_ancestry, get_ARGsegments
+export Hudson, sim_ancestry
 
 using ..PopSim
 using Distributions
@@ -375,13 +375,6 @@ end
 
 
 
-struct SimulatedAncestry{M<:Hudson,T}
-    model::M
-    demography::Demography
-    genome::Genome
-    sample::Sample
-    treedata::T
-end
 
 function sim_ancestry(model::Hudson, demography::Demography, genome::Genome,
     sample_size::Int; kwargs...)
@@ -437,7 +430,7 @@ function sim_ancestry(
     sort!(vc, by=first)
     @assert sum(length, vc) == L
 
-    SimulatedAncestry(model, demography, genome, pop_sample, vc)
+    PopSim.SimulatedAncestry(model, demography, genome, pop_sample, vc)
 end
 
 
@@ -608,14 +601,14 @@ function createbranches!(arg, branches, nextinternal, idc, parent_idc, last_time
     end
 end
 
-function get_ARGsegments(sa::SimulatedAncestry{M,Vector{ARGsegment{Int,CoalescentTreeTwoLineages}}}) where {M<:Hudson}
-    return sa.treedata
+function get_ARGsegments(sa::PopSim.SimulatedAncestry{M,S,Vector{ARGsegment{Int,CoalescentTreeTwoLineages}}}) where {M<:Hudson,S}
+    return sa.data
 end
 
-function get_ARGsegments(sa::SimulatedAncestry{M,Vector{ARGsegment{Int,HudsonARG{F}}}}) where {M<:Hudson,F}
+function get_ARGsegments(sa::PopSim.SimulatedAncestry{M,S,Vector{ARGsegment{Int,HudsonARG{F}}}}) where {M<:Hudson,S,F}
     n = length(sa.sample)
 
-    map(sa.treedata) do vci
+    map(sa.data) do vci
         ids = collect(1:n)
         first_id = 2 * n - 1
         idc = first_id

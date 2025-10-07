@@ -1,9 +1,9 @@
 
-function get_ARGsegments(sa::SimulatedAncestry, ids::Vector{Int64}) 
+function get_ARGsegments(sa::PopSim.SimulatedAncestry, ids::Vector{Int64}) 
     if length(ids) == 2
-        IBDIterator(sa.cos, ids, float(sa.demography.end_time))
+        IBDIterator(sa.data.cos, ids, float(sa.demography.end_time))
     else
-        IBDIteratorMulti(sa.cos, ids, float(sa.demography.end_time))
+        IBDIteratorMulti(sa.data.cos, ids, float(sa.demography.end_time))
     end
 end
 

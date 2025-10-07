@@ -5,11 +5,34 @@ using Distributions
 using Random
 
 
+import ..PopSim: sim_ancestry
+
 export SMCprime
 
 struct SMCprime <: AbstractEvolutionaryModel end
 
+function sim_ancestry(
+    model::SMCprime,
+    demography::Demography,
+    genome::Genome{R,M},
+    pop_sample = nothing;
+) where {R<:AbstractRateDistribution,M<:AbstractRateDistribution}
 
+    @assert genome.recombination isa PopSim.UniformRate "SMCprime only implemented for uniform recombination rate"
+    @assert genome.mutation isa PopSim.UniformRate "SMCprime only implemented for uniform mutation rate"
+
+    tnv = TNvector(demography, length(genome))
+    recombination_rate=PopSim.rate(recombination(genome))
+    mutation_rate=PopSim.rate(mutation(genome))
+    if length(tnv) == 2
+        pop = PopSim.StationaryPopulation(;size = tnv[2], genome_length = tnv[1],
+            mutation_rate, recombination_rate)
+    else
+        pop = PopSim.VaryingPopulation(; TNvector=tnv, mutation_rate, recombination_rate)
+    end
+
+    PopSim.SimulatedAncestry(model, demography, genome, pop_sample, pop)
+end
 
 
 
