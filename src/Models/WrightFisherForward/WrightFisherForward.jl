@@ -1,7 +1,7 @@
 
 module WrightFisherForwardModel
 
-export WrightFisher, sim_ancestry, get_ARGsegments
+export WrightFisher
 
 using ..PopSim
 import ..PopSim: sim_ancestry
@@ -59,20 +59,10 @@ randallele(ind::Individual) = rand(ind.alleles)
 
 
 
-struct SimulatedAncestry{M <: WrightFisher}
-    model::M
-    demography::Demography
-    genome::Genome
-    cos::CrossoverStores.AbstractCrossoverStore
-    alives::Vector{Vector{Individual}}
-end
 
 
 
-
-
-
-function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genome)
+function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genome, popsample = nothing)
     # prechecks
     @assert demography.ploidy == 2 "Not implemented"
 
@@ -151,7 +141,39 @@ function sim_ancestry(model::WrightFisher, demography::Demography, genome::Genom
 
     end
 
-    return SimulatedAncestry{typeof(model)}(model, demography, genome, cos, alives)
+    # sample individuals
+    if isnothing(popsample)
+        cos_ids = mapreduce(vcat, alives) do alive
+            mapreduce(vcat, alive, init = Vector{Int}()) do indv
+                indv.alleles
+            end
+        end
+    end
+    if popsample isa Int
+        popsample = Sample(demography, popsample)
+    end
+    if popsample isa Sample
+        cos_ids = Int[]
+        for id in popsample.ids
+            pop_id = get_population_index_by_id(demography, id)
+            if isnothing(pop_id) || length(alives[pop_id]) == 0
+                throw(ArgumentError("Population name '$id' not found in demography populations or population has no individuals at the end of the simulation."))
+            end
+            n = 10000
+            while n > 0
+                indv = rand(alives[pop_id])
+                cos_id = randallele(indv)
+                if !in(cos_id, cos_ids)
+                    push!(cos_ids, cos_id)
+                    break
+                end
+                n -= 1
+            end
+            n == 0 && throw(ArgumentError("Could not find a sample for "))
+        end
+    end
+
+    return PopSim.SimulatedAncestry(model, demography, genome, popsample, (;cos, alives, cos_ids))
 end
 
 

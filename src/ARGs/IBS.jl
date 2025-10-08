@@ -1,5 +1,6 @@
 
-export IBSIterator, IBMIterator, IBD2Iterator
+
+export IBSIterator, IBMIterator, IBD2Iterator, ibs
 
 
 
@@ -234,4 +235,61 @@ function IBD2Iterator(iter, ids::Vector{Int64})
 end
 
 
+
+
+
+function ibs(anc::SimulatedAncestry{M}, ids::Vector{Int64}, kwargs...) where {M}
+    throw(ArgumentError("ibs is not implemented for $M"))
+end
+
+
+function ibs(anc::SimulatedAncestry{Hudson}, ids::Vector{Int64}, kwargs...) 
+    arg = PopSim.HudsonModel.get_ARGsegments(anc)
+    if eltype(arg) == ARGsegment{Int64, CoalescentTreeTwoLineages} 
+        # two lineages tracked
+        return IBSIterator(arg, anc.genome.mutation; kwargs...)
+    elseif eltype(arg) == ARGsegment{Int64, CoalescentTree{Vector{Branch}, Float64}}
+        # more than two lineages tracked, no mutations yet
+        arg = IBMIterator(arg, anc.genome.mutation; kwargs...)
+        return IBSIterator(arg, ids) # convert to two lineages
+    elseif eltype(arg) == ARGsegment{Int64, CoalescentTree{Vector{MutatedBranch}, Float64}}
+        # more than two lineages tracked, with mutations
+        return IBSIterator(arg, ids) # convert to two lineages
+    else
+        throw(ArgumentError("ibs is not implemented for eltype $(eltype(arg))"))
+    end
+end
+
+function ibs(anc::SimulatedAncestry{WrightFisher}, ids::Vector{Int64}, kwargs...)
+    arg = PopSim.WrightFisherForwardModel.get_ARGsegments(anc, anc.data.cos_ids[ids])
+    if eltype(arg) == ARGsegment{Int64, CoalescentTreeTwoLineages} 
+        # two lineages tracked
+        return IBSIterator(arg, anc.genome.mutation; kwargs...)
+    elseif eltype(arg) == ARGsegment{Int64, CoalescentTree{Vector{Branch}, Float64}}
+        # more than two lineages tracked, no mutations yet
+        arg = IBMIterator(arg, anc.genome.mutation; kwargs...)
+        return IBSIterator(arg, ids) # convert to two lineages
+    elseif eltype(arg) == ARGsegment{Int64, CoalescentTree{Vector{MutatedBranch}, Float64}}
+        # more than two lineages tracked, with mutations
+        return IBSIterator(arg, ids) # convert to two lineages
+    else
+        throw(ArgumentError("ibs is not implemented for eltype $(eltype(arg))"))
+    end
+end
+
+function ibs(anc::SimulatedAncestry{SMCprime}, ids::Vector{Int64}, kwargs...)
+    pop = anc.data
+    @assert length(ids) == 2 "ibs is only implemented for two lineages in SMCprime"
+
+    IBSIteratorTwoLineages(PopSim.SMCprimeapprox.IBDIterator(pop), pop.mutation_rate; kwargs...)
+end
+
+
+
+
+ibs(anc::SimulatedAncestry, id1::Int64, id2::Int64, kwargs...) = 
+    ibs(anc, [id1, id2], kwargs...)
+
+ibs(anc::SimulatedAncestry, n::Int = 2; kwargs...) = 
+    ibs(anc, collect(1:n), kwargs...)
 
