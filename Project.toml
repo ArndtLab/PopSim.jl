@@ -1,7 +1,7 @@
 name = "PopSim"
 uuid = "607e1499-206c-4cd0-b740-8138de4d5c8a"
 authors = ["Peter Arndt <arndt@molgen.mpg.de> and contributors"]
-version = "0.1.4"
+version = "0.2.0"
 
 [deps]
 DataStructures = "864edb3b-99cc-5e75-8d2d-829cb0a9cfe8"
